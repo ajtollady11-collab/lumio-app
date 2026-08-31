@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+/*
+  Lumio design system
+  Concept: "A school of one" — scholarly warmth, modern and premium.
+  Distinct from generic AI SaaS: ink navy + warm paper, indigo primary,
+  a gold "achievement" accent, sage for progress. Serif display (Fraunces)
+  paired with Inter for a personal-academy feel.
+*/
+
+:root {
+  --paper: #fbf8f1;
+  --paper-2: #f3ede1;
+  --ink: #171a2b;
+  --ink-2: #2b2f45;
+  --muted: #6b6e82;
+  --line: #e3dccd;
+  --indigo: #5b54e0;
+  --indigo-ink: #423cc4;
+  --gold: #e8b84b;
+  --sage: #7ba890;
+  --white: #ffffff;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-indigo: var(--indigo);
+  --color-indigo-ink: var(--indigo-ink);
+  --color-gold: var(--gold);
+  --color-sage: var(--sage);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-fraunces);
+}
+
+* {
+  border-color: var(--line);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-fraunces), ui-serif, Georgia, serif;
+  font-optical-sizing: auto;
+}
+
+/* Subtle paper grain / warmth, used sparingly on hero */
+.paper-tint {
+  background-image:
+    radial-gradient(120% 120% at 100% 0%, rgba(91, 84, 224, 0.06) 0%, transparent 55%),
+    radial-gradient(90% 90% at 0% 100%, rgba(232, 184, 75, 0.08) 0%, transparent 50%);
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--indigo);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
