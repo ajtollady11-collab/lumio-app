@@ -1,25 +1,33 @@
 @import "tailwindcss";
 
 /*
-  Lumio design system
+  Lumio design system — premium edition.
   Concept: "A school of one" — scholarly warmth, modern and premium.
-  Distinct from generic AI SaaS: ink navy + warm paper, indigo primary,
-  a gold "achievement" accent, sage for progress. Serif display (Fraunces)
-  paired with Inter for a personal-academy feel.
+  Ink navy + warm paper, indigo primary, gold achievement accent, sage for
+  progress. Serif display (Fraunces) paired with Inter.
 */
 
 :root {
-  --paper: #fbf8f1;
-  --paper-2: #f3ede1;
-  --ink: #171a2b;
-  --ink-2: #2b2f45;
-  --muted: #6b6e82;
-  --line: #e3dccd;
+  --paper: #f6f2ea;
+  --paper-2: #efe9dd;
+  --paper-3: #faf7f1;
+  --ink: #14162a;
+  --ink-2: #33374f;
+  --ink-soft: #5a5e78;
+  --muted: #7c7f95;
+  --line: #e5ddcf;
+  --line-2: #ede6d8;
   --indigo: #5b54e0;
-  --indigo-ink: #423cc4;
+  --indigo-2: #7a72f0;
+  --indigo-ink: #3f38c4;
   --gold: #e8b84b;
-  --sage: #7ba890;
+  --gold-deep: #cf9c2b;
+  --sage: #6fa088;
+  --coral: #e0765b;
   --white: #ffffff;
+  --shadow-sm: 0 1px 2px rgba(20,22,42,.04), 0 4px 12px -6px rgba(20,22,42,.10);
+  --shadow-md: 0 6px 16px -8px rgba(20,22,42,.18), 0 20px 40px -24px rgba(20,22,42,.28);
+  --shadow-lg: 0 20px 50px -20px rgba(20,22,42,.30), 0 40px 90px -40px rgba(20,22,42,.40);
 
   --background: var(--paper);
   --foreground: var(--ink);
@@ -30,27 +38,32 @@
   --color-foreground: var(--foreground);
   --color-paper: var(--paper);
   --color-paper-2: var(--paper-2);
+  --color-paper-3: var(--paper-3);
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
+  --color-ink-soft: var(--ink-soft);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-line-2: var(--line-2);
   --color-indigo: var(--indigo);
+  --color-indigo-2: var(--indigo-2);
   --color-indigo-ink: var(--indigo-ink);
   --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
   --color-sage: var(--sage);
+  --color-coral: var(--coral);
   --font-sans: var(--font-inter);
   --font-display: var(--font-fraunces);
 }
 
-* {
-  border-color: var(--line);
-}
+* { border-color: var(--line); }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
 }
 
 .font-display {
@@ -58,24 +71,28 @@ body {
   font-optical-sizing: auto;
 }
 
-/* Subtle paper grain / warmth, used sparingly on hero */
 .paper-tint {
   background-image:
-    radial-gradient(120% 120% at 100% 0%, rgba(91, 84, 224, 0.06) 0%, transparent 55%),
-    radial-gradient(90% 90% at 0% 100%, rgba(232, 184, 75, 0.08) 0%, transparent 50%);
+    radial-gradient(120% 120% at 100% 0%, rgba(122,114,240,.10) 0%, transparent 55%),
+    radial-gradient(90% 90% at 0% 100%, rgba(232,184,75,.12) 0%, transparent 50%);
 }
 
-.focus-ring:focus-visible {
-  outline: 2px solid var(--indigo);
-  outline-offset: 2px;
-}
+.focus-ring:focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; }
 
-@media (prefers-reduced-motion: no-preference) {
-  .rise {
-    animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-  @keyframes rise {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+/* scroll reveal */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1); }
+.reveal.in { opacity: 1; transform: none; }
+.reveal.d1 { transition-delay: .08s; } .reveal.d2 { transition-delay: .16s; } .reveal.d3 { transition-delay: .24s; }
+
+@keyframes floaty { 0%,100%{ transform: translateY(0) } 50%{ transform: translateY(-9px) } }
+.floaty { animation: floaty 6s ease-in-out infinite; }
+.floaty2 { animation: floaty 7s ease-in-out infinite .8s; }
+.floaty3 { animation: floaty 6.5s ease-in-out infinite .4s; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(30px) scale(.97); } to { opacity: 1; transform: none; } }
+.rise { animation: rise 1s cubic-bezier(.22,1,.36,1) both .15s; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, .floaty, .floaty2, .floaty3, .rise { animation: none !important; transition-duration: .001ms !important; }
+  .reveal { opacity: 1 !important; transform: none !important; }
 }
