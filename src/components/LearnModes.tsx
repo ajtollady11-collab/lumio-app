@@ -53,6 +53,7 @@ export function LearnModes({
 
   const [mode, setMode] = useState<Mode | null>(initialMode ?? null);
   const [subject, setSubject] = useState<string>(subs[0]);
+  const [otherSubject, setOtherSubject] = useState("");
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +61,12 @@ export function LearnModes({
 
   async function generate() {
     if (!mode) return;
+    const effectiveSubject =
+      subject === "__other__" ? otherSubject.trim() : subject;
+    if (!effectiveSubject) {
+      setError("Please type the subject you'd like to learn.");
+      return;
+    }
     setLoading(true);
     setError(null);
     setData(null);
@@ -67,7 +74,7 @@ export function LearnModes({
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, subject, topic: topic.trim() }),
+        body: JSON.stringify({ mode, subject: effectiveSubject, topic: topic.trim() }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -168,7 +175,28 @@ export function LearnModes({
                       {s}
                     </button>
                   ))}
+                  <button
+                    onClick={() => setSubject("__other__")}
+                    className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+                      subject === "__other__"
+                        ? "border-transparent bg-[var(--indigo)]/10 font-semibold text-indigo shadow-[inset_0_0_0_1.5px_rgba(91,84,224,.4)]"
+                        : "border-dashed border-[var(--line)] bg-white text-ink-2 hover:border-ink"
+                    }`}
+                  >
+                    + Other…
+                  </button>
                 </div>
+
+                {subject === "__other__" && (
+                  <input
+                    value={otherSubject}
+                    onChange={(e) => setOtherSubject(e.target.value)}
+                    placeholder="Type any subject — e.g. Psychology, Latin, Business…"
+                    autoFocus
+                    className="mt-3 w-full rounded-xl border border-[var(--line)] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-indigo"
+                    onKeyDown={(e) => e.key === "Enter" && generate()}
+                  />
+                )}
 
                 <label className="mt-5 block text-sm font-medium">
                   Topic <span className="font-normal text-muted">(optional)</span>
@@ -176,7 +204,7 @@ export function LearnModes({
                 <input
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder={`e.g. a specific ${subject} topic — or leave blank`}
+                  placeholder="e.g. a specific topic — or leave blank"
                   className="mt-2 w-full rounded-xl border border-[var(--line)] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-indigo"
                   onKeyDown={(e) => e.key === "Enter" && generate()}
                 />
