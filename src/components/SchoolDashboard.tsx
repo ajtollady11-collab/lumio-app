@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 /* ---------- types passed from the server component ---------- */
 export interface DashboardProps {
@@ -103,6 +104,7 @@ export function SchoolDashboard(props: DashboardProps) {
     ? props.subjects
     : ["Geography", "Mathematics", "English Language", "Biology", "History", "Physics"];
 
+  const router = useRouter();
   const [view, setView] = useState<View>("dashboard");
   const [activeSubject, setActiveSubject] = useState<string>(subjects[0]);
   const [toast, setToast] = useState<string | null>(null);
@@ -172,9 +174,7 @@ export function SchoolDashboard(props: DashboardProps) {
             setActiveSubject(s);
             setView("subject");
           }}
-          onAskTeacher={() =>
-            showToast(`${props.teacherName} will be able to chat with you live in a later release.`)
-          }
+          onAskTeacher={() => router.push("/tutor")}
         />
       )}
 
