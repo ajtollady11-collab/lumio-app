@@ -175,6 +175,7 @@ export function SchoolDashboard(props: DashboardProps) {
             setView("subject");
           }}
           onAskTeacher={() => router.push("/tutor")}
+          onLearn={(mode) => router.push(mode ? `/learn?mode=${mode}` : "/learn")}
         />
       )}
 
@@ -223,12 +224,13 @@ function Dashboard(
     onTest: () => void;
     onSubject: (s: string) => void;
     onAskTeacher: () => void;
+    onLearn: (mode?: string) => void;
   },
 ) {
   const {
     firstName, teacherName, personalityLabel, curriculum, subjects,
     goalDone, goalTotal, streak, lessonsDone, testsDone, avgScore, overall,
-    onLesson, onTest, onSubject, onAskTeacher,
+    onLesson, onTest, onSubject, onAskTeacher, onLearn,
   } = props;
   const goalPct = Math.min(100, Math.round((goalDone / goalTotal) * 100));
   const remain = Math.max(0, goalTotal - goalDone);
@@ -275,7 +277,7 @@ function Dashboard(
                 <span>65% complete</span>
               </div>
               <button
-                onClick={onLesson}
+                onClick={() => onLearn("lesson")}
                 className="mt-5 inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-b from-[#f0c765] to-[var(--gold)] px-7 text-base font-medium text-[#3a2c05] transition-transform hover:-translate-y-0.5"
               >
                 Continue lesson →
@@ -327,10 +329,20 @@ function Dashboard(
         {/* quick actions */}
         <Section title="Quick actions">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <QuickAction label="Continue learning" onClick={onLesson} bg="91,84,224" icon={<PlayIcon />} />
-            <QuickAction label="Take a test" onClick={onTest} bg="232,184,75" icon={<TestIcon />} />
-            <QuickAction label="Review mistakes" onClick={onTest} bg="224,118,91" icon={<RedoIcon />} />
+            <QuickAction label="Learn a topic" onClick={() => onLearn("lesson")} bg="91,84,224" icon={<PlayIcon />} />
+            <QuickAction label="Quiz me" onClick={() => onLearn("quiz")} bg="232,184,75" icon={<TestIcon />} />
+            <QuickAction label="Flashcards" onClick={() => onLearn("flashcards")} bg="224,118,91" icon={<RedoIcon />} />
             <QuickAction label="Ask your teacher" onClick={onAskTeacher} bg="111,160,136" icon={<ChatIcon />} />
+          </div>
+        </Section>
+
+        {/* ways to learn (AI modes) */}
+        <Section title="Ways to learn" link="Powered by your AI tutor">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <ModeCard label="Learn a topic" desc="A guided lesson, made for you" icon="📖" bg="91,84,224" onClick={() => onLearn("lesson")} />
+            <ModeCard label="Watch a lecture" desc="Slide-by-slide teaching" icon="🎓" bg="63,120,180" onClick={() => onLearn("lecture")} />
+            <ModeCard label="Flashcards" desc="Revise key facts fast" icon="🃏" bg="232,184,75" onClick={() => onLearn("flashcards")} />
+            <ModeCard label="Quiz me" desc="Test yourself, get feedback" icon="✅" bg="111,160,136" onClick={() => onLearn("quiz")} />
           </div>
         </Section>
 
@@ -845,6 +857,16 @@ function MiniCard({ children }: { children: React.ReactNode }) {
     <div className="rounded-[20px] border border-[var(--line-2)] bg-white p-5 transition-transform hover:-translate-y-0.5" style={{ boxShadow: "var(--shadow-sm)" }}>
       {children}
     </div>
+  );
+}
+
+function ModeCard({ label, desc, icon, bg, onClick }: { label: string; desc: string; icon: string; bg: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="flex flex-col gap-2 rounded-2xl border border-[var(--line-2)] bg-white p-5 text-left transition-transform hover:-translate-y-1" style={{ boxShadow: "var(--shadow-sm)" }}>
+      <span className="grid h-11 w-11 place-items-center rounded-xl text-xl" style={{ background: `rgba(${bg},.14)` }}>{icon}</span>
+      <span className="mt-1 font-display text-[16px] font-semibold">{label}</span>
+      <span className="text-[13px] text-muted">{desc}</span>
+    </button>
   );
 }
 
