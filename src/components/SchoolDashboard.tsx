@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { UsageMeter } from "@/components/UsageMeter";
 
 /* ---------- types passed from the server component ---------- */
 export interface DashboardProps {
@@ -414,6 +415,7 @@ function Dashboard(
             </div>
 
             <div className="flex flex-col gap-5">
+              <UsageMeter />
               <div className="rounded-3xl border border-[var(--line-2)] bg-white p-7 text-center" style={{ boxShadow: "var(--shadow-sm)" }}>
                 <h3 className="font-display text-xl font-semibold">Learning progress</h3>
                 <div className="mt-2 flex justify-center">
