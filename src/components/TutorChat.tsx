@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Paywall } from "@/components/Paywall";
 
 interface Msg {
   role: "user" | "assistant";
@@ -29,6 +30,7 @@ export function TutorChat({
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paywall, setPaywall] = useState<{ title: string; body: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -70,16 +72,21 @@ export function TutorChat({
 
       if (!res.ok) {
         let msg = "Your tutor is unavailable right now. Please try again.";
+        let pw: { title: string; body: string } | null = null;
         try {
           const data = await res.json();
           if (data?.error) msg = data.error;
+          if (data?.limitReached && data?.paywall) pw = data.paywall;
         } catch {}
-        if (res.status === 401) {
+        setMessages((m) => m.slice(0, -1)); // remove empty assistant bubble
+        if (res.status === 402 && pw) {
+          setPaywall(pw);
+        } else if (res.status === 401) {
           setError("Your session expired. Redirecting you to log in…");
           setTimeout(() => router.push("/login?redirect=/tutor"), 1500);
+        } else {
+          setError(msg);
         }
-        setMessages((m) => m.slice(0, -1)); // remove empty assistant bubble
-        setError(msg);
         setStreaming(false);
         return;
       }
@@ -234,6 +241,15 @@ export function TutorChat({
           </p>
         </div>
       </div>
+
+      {paywall && (
+        <Paywall
+          title={paywall.title}
+          body={paywall.body}
+          onClose={() => setPaywall(null)}
+          onUpgrade={() => router.push("/upgrade")}
+        />
+      )}
     </div>
   );
 }

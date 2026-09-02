@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { StudentProfile, TeacherProfile } from "@/types";
 import { PERSONALITY_OPTIONS } from "@/types";
+import { checkAndCount } from "@/lib/usage";
+import { PAYWALL_COPY } from "@/lib/plans";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -117,6 +119,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "No message to respond to." },
       { status: 400 },
+    );
+  }
+
+  // 3b. Enforce the monthly usage limit (free tier caps; premium unlimited).
+  const usage = await checkAndCount(user.id, "tutor_message");
+  if (!usage.allowed) {
+    return NextResponse.json(
+      { error: PAYWALL_COPY.tutor_message.body, paywall: PAYWALL_COPY.tutor_message, limitReached: true },
+      { status: 402 },
     );
   }
 

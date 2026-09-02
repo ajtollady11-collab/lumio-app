@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Paywall } from "@/components/Paywall";
 
 type Mode = "lesson" | "lecture" | "flashcards" | "quiz";
 
@@ -57,6 +58,7 @@ export function LearnModes({
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paywall, setPaywall] = useState<{ title: string; body: string } | null>(null);
   const [data, setData] = useState<GenData | null>(null);
 
   async function generate() {
@@ -78,7 +80,11 @@ export function LearnModes({
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json?.error || "Couldn't create that. Please try again.");
+        if (res.status === 402 && json?.paywall) {
+          setPaywall(json.paywall);
+        } else {
+          setError(json?.error || "Couldn't create that. Please try again.");
+        }
       } else {
         setData(json.data as GenData);
       }
@@ -258,6 +264,15 @@ export function LearnModes({
           )}
         </div>
       </main>
+
+      {paywall && (
+        <Paywall
+          title={paywall.title}
+          body={paywall.body}
+          onClose={() => setPaywall(null)}
+          onUpgrade={() => router.push("/upgrade")}
+        />
+      )}
     </div>
   );
 }

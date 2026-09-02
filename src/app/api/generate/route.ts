@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { StudentProfile, TeacherProfile } from "@/types";
 import { PERSONALITY_OPTIONS } from "@/types";
+import { checkAndCount } from "@/lib/usage";
+import { PAYWALL_COPY } from "@/lib/plans";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -69,6 +71,15 @@ export async function POST(request: NextRequest) {
   }
   const subject = String(body.subject).slice(0, 80);
   const topic = body.topic ? String(body.topic).slice(0, 120) : "";
+
+  // Enforce the monthly usage limit (free tier caps; premium unlimited).
+  const usage = await checkAndCount(user.id, "generation");
+  if (!usage.allowed) {
+    return NextResponse.json(
+      { error: PAYWALL_COPY.generation.body, paywall: PAYWALL_COPY.generation, limitReached: true },
+      { status: 402 },
+    );
+  }
 
   // Personalisation from the student's profile.
   const { data: student } = await supabase
