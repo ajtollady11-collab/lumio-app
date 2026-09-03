@@ -809,12 +809,15 @@ function Header({ firstName }: { firstName: string }) {
         <div className="flex items-center justify-between gap-4 rounded-full border border-[var(--line)]/90 bg-paper-3/80 py-2.5 pl-[18px] pr-3 backdrop-blur-xl" style={{ boxShadow: "var(--shadow-sm)" }}>
           <LogoMark />
           <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-2 rounded-full border border-[var(--line)] bg-white/70 py-1.5 pl-1.5 pr-3 sm:flex">
+            <a href="/settings" className="hidden items-center gap-2 rounded-full border border-[var(--line)] bg-white/70 py-1.5 pl-1.5 pr-3 transition-colors hover:border-ink sm:flex">
               <span className="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br from-[var(--indigo-2)] to-[var(--indigo)] text-[13px] font-semibold text-white">
                 {firstName.charAt(0).toUpperCase()}
               </span>
               <span className="text-sm font-medium">{firstName}</span>
-            </span>
+            </a>
+            <a href="/settings" aria-label="Settings" className="grid h-10 w-10 place-items-center rounded-full border border-[var(--line)] bg-white text-ink-2 transition-colors hover:border-ink">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2 2M16.4 16.4l2 2M18.4 5.6l-2 2M7.6 16.4l-2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            </a>
             <form action="/auth/signout" method="post">
               <button type="submit" className="inline-flex h-10 items-center rounded-full border border-[var(--line)] bg-white px-4 text-sm font-medium text-ink transition-colors hover:border-ink">
                 Log out
