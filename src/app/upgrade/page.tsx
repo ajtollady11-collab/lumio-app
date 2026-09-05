@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PLANS } from "@/lib/plans";
+import { createClient } from "@/lib/supabase/server";
+import { SubscribeButton } from "@/components/SubscribeButton";
 
 export const metadata = { title: "Upgrade to Premium — Lumio" };
 
@@ -11,10 +14,16 @@ const FEATURES = [
   "Priority access to new features as they launch",
 ];
 
-export default function UpgradePage() {
+export default async function UpgradePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login?redirect=/upgrade");
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-5 py-16">
-      <div className="w-full max-w-md text-center">
+      <div className="flex w-full max-w-md flex-col items-center text-center">
         <span className="inline-block rounded-full bg-ink px-3 py-1 text-[12px] font-semibold tracking-wide text-gold">
           LUMIO PREMIUM
         </span>
@@ -37,16 +46,13 @@ export default function UpgradePage() {
           ))}
         </ul>
 
-        <div className="mt-8 rounded-2xl border border-dashed border-[var(--line)] bg-paper-2/60 p-5 text-sm text-ink-2">
-          <span className="font-semibold">Checkout is coming next.</span> Secure card
-          payment via Stripe is being set up — you&rsquo;ll be able to subscribe here shortly.
-        </div>
+        <SubscribeButton />
 
         <Link
           href="/school"
-          className="mt-6 inline-flex h-11 items-center justify-center rounded-full border border-[var(--line)] bg-white px-6 text-sm font-medium hover:border-ink"
+          className="mt-4 inline-flex h-10 items-center justify-center rounded-full text-sm font-medium text-muted hover:text-ink"
         >
-          Back to dashboard
+          Maybe later
         </Link>
       </div>
     </main>
