@@ -11,7 +11,7 @@ const VALID: Mode[] = ["lesson", "lecture", "flashcards", "quiz"];
 export default async function LearnPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string }>;
+  searchParams: Promise<{ mode?: string; subject?: string; topic?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -27,10 +27,18 @@ export default async function LearnPage({
 
   if (!student) redirect("/onboarding");
 
-  const { mode } = await searchParams;
+  const { mode, subject, topic } = await searchParams;
   const initialMode = VALID.includes(mode as Mode) ? (mode as Mode) : undefined;
+  // Pre-fill subject/topic when navigating from the tutor
+  const initialSubject = subject ? decodeURIComponent(subject) : undefined;
+  const initialTopic = topic ? decodeURIComponent(topic) : undefined;
 
   return (
-    <LearnModes subjects={student.subjects ?? []} initialMode={initialMode} />
+    <LearnModes
+      subjects={student.subjects ?? []}
+      initialMode={initialMode}
+      initialSubject={initialSubject}
+      initialTopic={initialTopic}
+    />
   );
 }

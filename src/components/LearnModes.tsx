@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Paywall } from "@/components/Paywall";
 
@@ -45,21 +45,35 @@ type GenData = LessonData | LectureData | FlashData | QuizData;
 export function LearnModes({
   subjects,
   initialMode,
+  initialSubject,
+  initialTopic,
 }: {
   subjects: string[];
   initialMode?: Mode;
+  initialSubject?: string;
+  initialTopic?: string;
 }) {
   const router = useRouter();
   const subs = subjects.length ? subjects : ["Mathematics", "English", "Science"];
 
   const [mode, setMode] = useState<Mode | null>(initialMode ?? null);
-  const [subject, setSubject] = useState<string>(subs[0]);
+  const [subject, setSubject] = useState<string>(initialSubject ?? subs[0]);
   const [otherSubject, setOtherSubject] = useState("");
-  const [topic, setTopic] = useState("");
+  const [topic, setTopic] = useState(initialTopic ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paywall, setPaywall] = useState<{ title: string; body: string } | null>(null);
   const [data, setData] = useState<GenData | null>(null);
+
+  // Auto-generate when tutor sends student here with mode + subject + topic pre-filled
+  useEffect(() => {
+    if (initialMode && initialSubject && initialTopic) {
+      // Small delay so the page renders before generating
+      const t = setTimeout(() => generate(), 400);
+      return () => clearTimeout(t);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function generate() {
     if (!mode) return;
