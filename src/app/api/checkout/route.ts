@@ -59,6 +59,7 @@ export async function POST() {
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
+      automatic_tax: { enabled: false },
       success_url: `${siteUrl()}/school?upgraded=1`,
       cancel_url: `${siteUrl()}/upgrade?cancelled=1`,
       allow_promotion_codes: true,
