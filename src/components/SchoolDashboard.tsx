@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UsageMeter } from "@/components/UsageMeter";
 
@@ -39,46 +39,7 @@ function meta(name: string) {
 }
 
 /* deterministic per-subject progress so it's stable */
-function subjProgress(name: string) {
-  let seed = 0;
-  for (let i = 0; i < name.length; i++) seed += name.charCodeAt(i);
-  return 25 + (seed % 55);
-}
 
-/* ---------- demo lesson + test content ---------- */
-const LESSON = {
-  subject: "Geography",
-  topic: "Coastal Landscapes",
-  section: "Coastal Erosion",
-  body: "Waves shape our coastlines through several erosion processes. Hydraulic action occurs when waves force air into cracks in the rock, increasing pressure and eventually causing the rock to break apart. Over time, this widens cracks into caves, arches and stacks.",
-  keypoints: [
-    "Hydraulic action — trapped air pressure shatters rock.",
-    "Abrasion — waves fling sand and pebbles at the cliff.",
-    "Attrition — rock fragments knock together and become smaller and rounder.",
-  ],
-  q: {
-    prompt: "What happens during hydraulic action?",
-    options: [
-      "Rock fragments knock together and become smaller",
-      "Waves force air into cracks, and pressure breaks the rock apart",
-      "Waves fling sand and pebbles at the cliff face",
-      "Dissolved chemicals slowly weaken the rock",
-    ],
-    correct: 1,
-    explain:
-      "Hydraulic action is all about pressure: waves compress air trapped in cracks, and when the wave retreats the pressure releases explosively, prising the rock apart.",
-  },
-};
-
-const TEST = [
-  { q: "Which process involves waves compressing air in cracks?", o: ["Abrasion", "Attrition", "Hydraulic action", "Solution"], c: 2, e: "Hydraulic action compresses trapped air, which shatters the rock." },
-  { q: "What is a stack?", o: ["A type of wave", "An isolated pillar of rock left after an arch collapses", "A river mouth", "A sandy beach ridge"], c: 1, e: "When an arch collapses, an isolated column called a stack is left standing." },
-  { q: "Abrasion is best described as…", o: ["Rocks dissolving in seawater", "Waves throwing sand and pebbles at cliffs", "Air pressure in cracks", "Fragments rounding off"], c: 1, e: "Abrasion is the sandpaper effect of material being hurled at the cliff." },
-  { q: "Longshore drift transports material…", o: ["Straight out to sea", "Along the coastline in a zigzag", "Up the cliff face", "Only during storms"], c: 1, e: "Swash pushes material up the beach at an angle; backwash pulls it straight down — creating a zigzag along the coast." },
-  { q: "Which landform forms by deposition, not erosion?", o: ["Cave", "Arch", "Spit", "Stack"], c: 2, e: "A spit is built up from deposited sediment carried by longshore drift." },
-];
-
-type View = "dashboard" | "lesson" | "test" | "subject";
 
 const DEFAULT_PROGRESS = { goalDone: 14, lessonsDone: 24, testsDone: 8, avgScore: 87 };
 
@@ -106,27 +67,17 @@ export function SchoolDashboard(props: DashboardProps) {
     : ["Geography", "Mathematics", "English Language", "Biology", "History", "Physics"];
 
   const router = useRouter();
-  const [view, setView] = useState<View>("dashboard");
-  const [activeSubject, setActiveSubject] = useState<string>(subjects[0]);
   const [toast, setToast] = useState<string | null>(null);
 
-  // progress state (persisted locally so the demo feels alive).
-  // A lazy initialiser reads any saved progress once, on first render.
+  // progress state (persisted locally).
   const saved = readSaved();
-  const [goalDone, setGoalDone] = useState(saved.goalDone);
-  const [lessonsDone, setLessonsDone] = useState(saved.lessonsDone);
-  const [testsDone, setTestsDone] = useState(saved.testsDone);
-  const [avgScore, setAvgScore] = useState(saved.avgScore);
+  const [goalDone] = useState(saved.goalDone);
+  const [lessonsDone] = useState(saved.lessonsDone);
+  const [testsDone] = useState(saved.testsDone);
+  const [avgScore] = useState(saved.avgScore);
   const goalTotal = 20;
   const streak = 5;
   const overall = 42;
-
-  function persist(next: Partial<{ goalDone: number; lessonsDone: number; testsDone: number; avgScore: number }>) {
-    try {
-      const cur = { goalDone, lessonsDone, testsDone, avgScore, ...next };
-      localStorage.setItem("lumio_progress", JSON.stringify(cur));
-    } catch {}
-  }
 
   function showToast(msg: string) {
     setToast(msg);
@@ -137,69 +88,22 @@ export function SchoolDashboard(props: DashboardProps) {
     );
   }
 
-  function completeLesson() {
-    const nl = lessonsDone + 1;
-    const ng = Math.min(goalTotal, goalDone + 6);
-    setLessonsDone(nl);
-    setGoalDone(ng);
-    persist({ lessonsDone: nl, goalDone: ng });
-    setView("dashboard");
-    showToast("Lesson complete · +6 min toward today's goal");
-  }
-  function finishTest(pct: number) {
-    const nt = testsDone + 1;
-    const na = Math.round((avgScore + pct) / 2);
-    const ng = Math.min(goalTotal, goalDone + 4);
-    setTestsDone(nt);
-    setAvgScore(na);
-    setGoalDone(ng);
-    persist({ testsDone: nt, avgScore: na, goalDone: ng });
-  }
-
   return (
     <div className="flex min-h-screen flex-col">
-      {view === "dashboard" && (
-        <Dashboard
-          {...props}
-          subjects={subjects}
-          goalDone={goalDone}
-          goalTotal={goalTotal}
-          streak={streak}
-          lessonsDone={lessonsDone}
-          testsDone={testsDone}
-          avgScore={avgScore}
-          overall={overall}
-          onLesson={() => setView("lesson")}
-          onTest={() => setView("test")}
-          onSubject={(s) => {
-            setActiveSubject(s);
-            setView("subject");
-          }}
-          onAskTeacher={() => router.push("/tutor")}
-          onLearn={(mode) => router.push(mode ? `/learn?mode=${mode}` : "/learn")}
-        />
-      )}
-
-      {view === "lesson" && (
-        <LessonView
-          onBack={() => setView("dashboard")}
-          onComplete={completeLesson}
-        />
-      )}
-
-      {view === "test" && (
-        <TestView onBack={() => setView("dashboard")} onFinish={finishTest} />
-      )}
-
-      {view === "subject" && (
-        <SubjectView
-          name={activeSubject}
-          avgScore={avgScore}
-          onBack={() => setView("dashboard")}
-          onLesson={() => setView("lesson")}
-          onTest={() => setView("test")}
-        />
-      )}
+      <Dashboard
+        {...props}
+        subjects={subjects}
+        goalDone={goalDone}
+        goalTotal={goalTotal}
+        streak={streak}
+        lessonsDone={lessonsDone}
+        testsDone={testsDone}
+        avgScore={avgScore}
+        overall={overall}
+        onAskTeacher={() => router.push("/tutor")}
+        onLearn={(mode) => router.push(mode ? `/learn?mode=${mode}` : "/learn")}
+        onLearnSubject={(s, mode) => router.push(`/learn?mode=${mode}&subject=${encodeURIComponent(s)}`)}
+      />
 
       {toast && (
         <div className="fixed bottom-7 left-1/2 z-[200] -translate-x-1/2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-white shadow-lg">
@@ -221,17 +125,15 @@ function Dashboard(
     testsDone: number;
     avgScore: number;
     overall: number;
-    onLesson: () => void;
-    onTest: () => void;
-    onSubject: (s: string) => void;
     onAskTeacher: () => void;
     onLearn: (mode?: string) => void;
+    onLearnSubject: (subject: string, mode: string) => void;
   },
 ) {
   const {
     firstName, teacherName, personalityLabel, curriculum, subjects,
     goalDone, goalTotal, streak, lessonsDone, testsDone, avgScore, overall,
-    onLesson, onTest, onSubject, onAskTeacher, onLearn,
+    onAskTeacher, onLearn, onLearnSubject,
   } = props;
   const goalPct = Math.min(100, Math.round((goalDone / goalTotal) * 100));
   const remain = Math.max(0, goalTotal - goalDone);
@@ -262,30 +164,31 @@ function Dashboard(
             />
             <div className="relative z-[1]">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[12.5px] font-medium text-[#d7d3f7]">
-                Continue where you left off
+                Start learning with your AI tutor
               </span>
               <p className="mt-4 text-[13px] font-semibold tracking-wide text-gold">
-                Geography
+                {subjects[0] ?? "Your subjects"}
               </p>
               <p className="mt-1.5 font-display text-[28px] font-semibold leading-tight">
-                Coastal Landscapes
+                Ready when you are
               </p>
               <p className="mt-2.5 max-w-[30rem] text-[14.5px] leading-relaxed text-[#c3c5d6]">
-                Learn how erosion shapes coastlines and test your knowledge.
+                Ask your tutor to teach you anything, make flashcards, give you a lecture, or test your knowledge — all personalised to you.
               </p>
-              <div className="mt-4.5 flex flex-wrap items-center gap-4 text-[13px] text-[#b9bccd]">
-                <span>⏱ 12 min</span>
-                <span>65% complete</span>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  onClick={() => onLearn("lesson")}
+                  className="inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-b from-[#f0c765] to-[var(--gold)] px-7 text-base font-medium text-[#3a2c05] transition-transform hover:-translate-y-0.5"
+                >
+                  Start a lesson →
+                </button>
+                <button
+                  onClick={onAskTeacher}
+                  className="inline-flex h-12 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-7 text-base font-medium text-white transition-transform hover:-translate-y-0.5"
+                >
+                  Ask your tutor
+                </button>
               </div>
-              <button
-                onClick={() => onLearn("lesson")}
-                className="mt-5 inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-b from-[#f0c765] to-[var(--gold)] px-7 text-base font-medium text-[#3a2c05] transition-transform hover:-translate-y-0.5"
-              >
-                Continue lesson →
-              </button>
-            </div>
-            <div className="relative z-[1] flex justify-center">
-              <Ring pct={65} label="this topic" big />
             </div>
           </div>
         </Section>
@@ -352,12 +255,10 @@ function Dashboard(
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {subjects.map((s) => {
               const m = meta(s);
-              const p = subjProgress(s);
-              const done = Math.round((p / 100) * 19);
               return (
                 <button
                   key={s}
-                  onClick={() => onSubject(s)}
+                  onClick={() => onLearnSubject(s, "lesson")}
                   className="flex flex-col gap-1 rounded-[20px] border border-[var(--line-2)] bg-white p-[22px] text-left transition-transform hover:-translate-y-1"
                   style={{ boxShadow: "var(--shadow-sm)" }}
                 >
@@ -370,21 +271,16 @@ function Dashboard(
                     </span>
                     <div>
                       <div className="font-display text-lg font-semibold">{s}</div>
-                      <div className="text-[13px] text-muted">{m.topic}</div>
+                      <div className="text-[13px] text-muted">AI-powered lessons</div>
                     </div>
                   </div>
-                  <div className="mt-3.5 flex items-center justify-between text-[13px]">
-                    <span className="font-semibold">{p}% complete</span>
-                    <span className="text-muted">{done} / 19 lessons</span>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <span onClick={(e) => { e.stopPropagation(); onLearnSubject(s, "lesson"); }} className="rounded-full border border-[var(--line)] bg-paper-2 px-3 py-1 text-[12px] text-ink-2 hover:border-ink">Lesson</span>
+                    <span onClick={(e) => { e.stopPropagation(); onLearnSubject(s, "quiz"); }} className="rounded-full border border-[var(--line)] bg-paper-2 px-3 py-1 text-[12px] text-ink-2 hover:border-ink">Quiz</span>
+                    <span onClick={(e) => { e.stopPropagation(); onLearnSubject(s, "flashcards"); }} className="rounded-full border border-[var(--line)] bg-paper-2 px-3 py-1 text-[12px] text-ink-2 hover:border-ink">Flashcards</span>
                   </div>
-                  <div className="mt-2 h-[7px] overflow-hidden rounded-full bg-paper-2">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${p}%`, background: `linear-gradient(90deg,rgba(${m.color},.7),rgb(${m.color}))` }}
-                    />
-                  </div>
-                  <span className="mt-4 inline-flex items-center gap-1 text-[13.5px] font-semibold text-indigo">
-                    Continue →
+                  <span className="mt-3 inline-flex items-center gap-1 text-[13.5px] font-semibold text-indigo">
+                    Start learning →
                   </span>
                 </button>
               );
@@ -393,11 +289,11 @@ function Dashboard(
         </Section>
 
         {/* up next */}
-        <Section title="Up next" link="Recommended for you">
+        <Section title="Up next" link="Pick what to do">
           <div className="grid gap-4 md:grid-cols-3">
-            <NextCard tag="Next up" topic="Coastal Management" time="15 min" why="Recommended because you're currently studying Coastal Landscapes." onClick={onLesson} />
-            <NextCard tag="Suggested" topic="Rivers: The Long Profile" time="18 min" why="Builds on the erosion processes you just learned." onClick={onLesson} />
-            <NextCard tag="Practice" topic="Coastal Landforms — Quick Test" time="10 min" why="A short check to lock in this week's progress." onClick={onTest} />
+            <NextCard tag="Lesson" topic={`Learn ${subjects[0] ?? "a topic"}`} time="~15 min" why={`A personalised lesson on ${subjects[0] ?? "your subject"}, generated just for you.`} onClick={() => onLearnSubject(subjects[0] ?? "", "lesson")} />
+            <NextCard tag="Quiz" topic={`Test yourself on ${subjects[1] ?? subjects[0] ?? "a topic"}`} time="~10 min" why="A quick check to see what you know — scored instantly." onClick={() => onLearnSubject(subjects[1] ?? subjects[0] ?? "", "quiz")} />
+            <NextCard tag="Tutor" topic="Ask your teacher anything" time="anytime" why="Chat with your personal tutor — they can teach, quiz, and guide you." onClick={onAskTeacher} />
           </div>
         </Section>
 
@@ -447,7 +343,7 @@ function Dashboard(
                     <span className="h-2 w-2 rounded-full bg-[var(--sage)]" /> Ready when you are.
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2.5">
-                    <button onClick={onLesson} className="inline-flex h-10 items-center gap-2 rounded-full bg-indigo px-5 text-sm font-medium text-white transition-colors hover:bg-[var(--indigo-ink)]">
+                    <button onClick={() => onLearn("lesson")} className="inline-flex h-10 items-center gap-2 rounded-full bg-indigo px-5 text-sm font-medium text-white transition-colors hover:bg-[var(--indigo-ink)]">
                       Start a lesson →
                     </button>
                     <button onClick={onAskTeacher} className="inline-flex h-10 items-center rounded-full border border-[var(--line)] bg-white px-5 text-sm font-medium text-ink transition-colors hover:border-ink">
@@ -465,337 +361,6 @@ function Dashboard(
             Curriculum: {curriculum}
           </p>
         )}
-      </main>
-    </>
-  );
-}
-
-/* ============================ LESSON ============================ */
-function LessonView({ onBack, onComplete }: { onBack: () => void; onComplete: () => void }) {
-  const [answered, setAnswered] = useState<number | null>(null);
-  const L = LESSON;
-  const correct = L.q.correct;
-
-  return (
-    <>
-      <SubHeader onBack={onBack} />
-      <main className="flex-1 px-5 py-8 sm:px-8">
-        <div className="mx-auto max-w-[760px]">
-          <div className="text-[13px] text-muted">
-            <b className="font-semibold text-indigo">{L.subject}</b> · {L.topic}
-          </div>
-          <h1 className="mt-2 font-display text-[clamp(28px,4vw,38px)] font-semibold tracking-tight">
-            {L.section}
-          </h1>
-
-          <div className="mt-6 rounded-[22px] border border-[var(--line-2)] bg-white p-[30px]" style={{ boxShadow: "var(--shadow-sm)" }}>
-            <h3 className="font-display text-[22px] font-semibold">Understanding coastal erosion</h3>
-            <p className="mt-3 text-base leading-relaxed text-ink-2">{L.body}</p>
-            <div className="mt-5 rounded-2xl border border-[var(--line-2)] bg-paper-3 p-4">
-              <h4 className="text-[13px] font-semibold uppercase tracking-wide text-indigo">Key points</h4>
-              <ul className="mt-3 flex flex-col gap-2.5">
-                {L.keypoints.map((k) => (
-                  <li key={k} className="flex gap-2.5 text-[14.5px] leading-snug text-ink-2">
-                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md bg-[var(--sage)]/15">
-                      <CheckSmall />
-                    </span>
-                    {k}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* quick check */}
-          <div className="mt-6 rounded-[22px] border border-[rgba(91,84,224,.16)] bg-gradient-to-br from-[rgba(91,84,224,.06)] to-[rgba(91,84,224,.015)] p-[26px]">
-            <span className="text-[12px] font-semibold uppercase tracking-wide text-indigo">✦ Quick check</span>
-            <div className="mt-3 font-display text-[21px] font-semibold leading-snug">{L.q.prompt}</div>
-            <div className="mt-4.5 flex flex-col gap-2.5">
-              {L.q.options.map((o, i) => {
-                const locked = answered !== null;
-                const isC = i === correct;
-                const isPickedWrong = answered === i && i !== correct;
-                const showC = locked && isC;
-                let cls = "border-[var(--line)] bg-white";
-                if (showC) cls = "border-[var(--sage)] bg-[var(--sage)]/10";
-                else if (isPickedWrong) cls = "border-[var(--coral)] bg-[var(--coral)]/8";
-                return (
-                  <button
-                    key={o}
-                    disabled={locked}
-                    onClick={() => setAnswered(i)}
-                    className={`flex items-center gap-3 rounded-[14px] border-[1.5px] px-4 py-3.5 text-left text-[15px] transition-transform ${cls} ${locked ? "" : "hover:-translate-y-0.5 hover:border-indigo"}`}
-                  >
-                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-paper-2 text-[13px] font-semibold">
-                      {String.fromCharCode(65 + i)}
-                    </span>
-                    <span>{o}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {answered !== null && (
-              <div
-                className={`mt-4 rounded-[14px] border px-4 py-3.5 text-sm leading-snug ${
-                  answered === correct
-                    ? "border-[rgba(111,160,136,.3)] bg-[rgba(111,160,136,.12)] text-[#2f5e46]"
-                    : "border-[rgba(224,118,91,.3)] bg-[rgba(224,118,91,.1)] text-[#8a3826]"
-                }`}
-              >
-                <b>{answered === correct ? "Correct! " : "Not quite. "}</b>
-                {L.q.explain}
-              </div>
-            )}
-            <div className="mt-6 flex items-center justify-between gap-3">
-              <button onClick={onBack} className="inline-flex h-10 items-center rounded-full px-5 text-sm font-medium text-ink-2 hover:bg-[rgba(20,22,42,.05)]">
-                Exit lesson
-              </button>
-              {answered !== null && (
-                <button onClick={onComplete} className="inline-flex h-10 items-center gap-2 rounded-full bg-indigo px-6 text-sm font-medium text-white hover:bg-[var(--indigo-ink)]">
-                  Continue →
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </main>
-    </>
-  );
-}
-
-/* ============================ TEST ============================ */
-function TestView({ onBack, onFinish }: { onBack: () => void; onFinish: (pct: number) => void }) {
-  const [i, setI] = useState(0);
-  const [answers, setAnswers] = useState<{ picked: number; correct: number }[]>([]);
-  const [answered, setAnswered] = useState<number | null>(null);
-
-  const done = i >= TEST.length;
-  const right = answers.filter((a) => a.picked === a.correct).length;
-  const pct = done ? Math.round((right / TEST.length) * 100) : 0;
-
-  // Report the score once, after the results screen renders.
-  useEffect(() => {
-    if (done) onFinish(pct);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [done]);
-
-  if (done) {
-    const wrong = answers
-      .map((a, idx) => ({ a, idx }))
-      .filter((x) => x.a.picked !== x.a.correct);
-    return (
-      <>
-        <SubHeader onBack={onBack} />
-        <main className="flex-1 px-5 py-8 sm:px-8">
-          <div className="mx-auto max-w-[760px]">
-            <div className="text-[13px] text-muted"><b className="font-semibold text-indigo">Geography · Coastal Landscapes</b></div>
-            <h1 className="mt-2 font-display text-[clamp(28px,4vw,38px)] font-semibold tracking-tight">Test complete</h1>
-            <div className="mt-6 rounded-[22px] border border-[var(--line-2)] bg-white p-[30px] text-center" style={{ boxShadow: "var(--shadow-sm)" }}>
-              <div className="flex justify-center">
-                <ScoreRing pct={pct} sub={`${right} of ${TEST.length} correct`} />
-              </div>
-              <p className="mt-4.5 text-[15px] text-ink-2">
-                {pct >= 80 ? "Excellent work — you've really got this." : pct >= 50 ? "Good effort. Review the ones you missed below." : "Keep going — review these and try again."}
-              </p>
-              {wrong.length > 0 ? (
-                <div className="mt-5.5 text-left">
-                  <h3 className="font-display text-base font-semibold">Review your mistakes</h3>
-                  {wrong.map((x) => {
-                    const Q = TEST[x.idx];
-                    return (
-                      <div key={x.idx} className="mt-3 rounded-[14px] border border-[var(--line-2)] bg-paper-3 p-4">
-                        <div className="text-[14.5px] font-semibold">{Q.q}</div>
-                        <div className="mt-2 flex items-start gap-2 text-[13.5px] text-[var(--coral)]">
-                          <span>✗</span> Your answer: {Q.o[x.a.picked]}
-                        </div>
-                        <div className="mt-1 flex items-start gap-2 text-[13.5px] text-[var(--sage)]">
-                          <span>✓</span> Correct: {Q.o[Q.c]}
-                        </div>
-                        <div className="mt-2 text-[13px] leading-snug text-ink-2">{Q.e}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="mt-4 font-semibold text-[var(--sage)]">Perfect score — no mistakes to review!</p>
-              )}
-              <div className="mt-6.5 flex justify-center gap-3">
-                <button
-                  onClick={() => { setI(0); setAnswers([]); setAnswered(null); }}
-                  className="inline-flex h-11 items-center rounded-full border border-[var(--line)] bg-white px-5 text-sm font-medium text-ink hover:border-ink"
-                >
-                  Retry test
-                </button>
-                <button onClick={onBack} className="inline-flex h-11 items-center gap-2 rounded-full bg-indigo px-5 text-sm font-medium text-white hover:bg-[var(--indigo-ink)]">
-                  Back to dashboard →
-                </button>
-              </div>
-            </div>
-          </div>
-        </main>
-      </>
-    );
-  }
-
-  const Q = TEST[i];
-  return (
-    <>
-      <SubHeader onBack={onBack} />
-      <main className="flex-1 px-5 py-8 sm:px-8">
-        <div className="mx-auto max-w-[760px]">
-          <div className="text-[13px] text-muted"><b className="font-semibold text-indigo">Geography · Coastal Landscapes</b></div>
-          <h1 className="mt-2 font-display text-[clamp(28px,4vw,38px)] font-semibold tracking-tight">Test yourself</h1>
-          <div className="mt-4.5 flex items-center justify-between gap-3.5">
-            <span className="text-[13px] font-medium text-muted">Question {i + 1} of {TEST.length}</span>
-            <span className="flex gap-1.5">
-              {TEST.map((_, idx) => (
-                <span
-                  key={idx}
-                  className={`h-2 w-2 rounded-full ${idx < i ? "bg-[var(--sage)]" : idx === i ? "scale-125 bg-indigo" : "bg-paper-2"}`}
-                />
-              ))}
-            </span>
-          </div>
-          <div className="mt-4 rounded-[22px] border border-[var(--line-2)] bg-white p-[30px]" style={{ boxShadow: "var(--shadow-sm)" }}>
-            <h3 className="font-display text-xl font-semibold">{Q.q}</h3>
-            <div className="mt-4 flex flex-col gap-2.5">
-              {Q.o.map((o, idx) => {
-                const locked = answered !== null;
-                const isC = idx === Q.c;
-                const isPickedWrong = answered === idx && idx !== Q.c;
-                const showC = locked && isC;
-                let cls = "border-[var(--line)] bg-white";
-                if (showC) cls = "border-[var(--sage)] bg-[var(--sage)]/10";
-                else if (isPickedWrong) cls = "border-[var(--coral)] bg-[var(--coral)]/8";
-                return (
-                  <button
-                    key={o}
-                    disabled={locked}
-                    onClick={() => {
-                      setAnswered(idx);
-                      setAnswers((a) => [...a, { picked: idx, correct: Q.c }]);
-                    }}
-                    className={`flex items-center gap-3 rounded-[14px] border-[1.5px] px-4 py-3.5 text-left text-[15px] transition-transform ${cls} ${locked ? "" : "hover:-translate-y-0.5 hover:border-indigo"}`}
-                  >
-                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-paper-2 text-[13px] font-semibold">
-                      {String.fromCharCode(65 + idx)}
-                    </span>
-                    <span>{o}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {answered !== null && (
-              <div
-                className={`mt-4 rounded-[14px] border px-4 py-3.5 text-sm leading-snug ${
-                  answered === Q.c
-                    ? "border-[rgba(111,160,136,.3)] bg-[rgba(111,160,136,.12)] text-[#2f5e46]"
-                    : "border-[rgba(224,118,91,.3)] bg-[rgba(224,118,91,.1)] text-[#8a3826]"
-                }`}
-              >
-                <b>{answered === Q.c ? "Correct! " : "Not quite. "}</b>
-                {Q.e}
-              </div>
-            )}
-            <div className="mt-6 flex items-center justify-between gap-3">
-              <button onClick={onBack} className="inline-flex h-10 items-center rounded-full px-5 text-sm font-medium text-ink-2 hover:bg-[rgba(20,22,42,.05)]">
-                Exit
-              </button>
-              {answered !== null && (
-                <button
-                  onClick={() => { setI(i + 1); setAnswered(null); }}
-                  className="inline-flex h-10 items-center gap-2 rounded-full bg-indigo px-6 text-sm font-medium text-white hover:bg-[var(--indigo-ink)]"
-                >
-                  {i === TEST.length - 1 ? "See results" : "Next question"} →
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </main>
-    </>
-  );
-}
-
-/* ============================ SUBJECT ============================ */
-function SubjectView({
-  name, avgScore, onBack, onLesson, onTest,
-}: { name: string; avgScore: number; onBack: () => void; onLesson: () => void; onTest: () => void }) {
-  const m = meta(name);
-  const p = subjProgress(name);
-  const lessonsDone = Math.round((p / 100) * 19);
-  const topics = [
-    { t: m.topic, done: true },
-    { t: "Core Concepts", done: p > 40 },
-    { t: "Applied Examples", done: p > 60 },
-    { t: "Exam Practice", done: p > 80 },
-    { t: "Extension & Mastery", done: false },
-  ];
-  return (
-    <>
-      <SubHeader onBack={onBack} />
-      <main className="flex-1 px-5 py-8 sm:px-8">
-        <div className="mx-auto max-w-[760px]">
-          <div className="text-[13px] text-muted"><b className="font-semibold text-indigo">Your subjects</b> · {name}</div>
-          <div className="mt-2.5 flex items-center gap-4">
-            <span className="grid h-14 w-14 place-items-center rounded-2xl text-[26px]" style={{ background: `rgba(${m.color},.14)`, color: `rgb(${m.color})` }}>
-              {m.icon}
-            </span>
-            <div>
-              <h1 className="font-display text-[clamp(28px,4vw,38px)] font-semibold tracking-tight">{name}</h1>
-              <div className="text-sm text-muted">Current topic · {m.topic}</div>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <MiniCard>
-              <span className="text-[13px] font-medium text-muted">Progress</span>
-              <div className="mt-1.5 font-display text-xl font-semibold">{p}%</div>
-              <div className="mt-2.5 h-[7px] overflow-hidden rounded-full bg-paper-2">
-                <div className="h-full rounded-full" style={{ width: `${p}%`, background: `linear-gradient(90deg,rgba(${m.color},.7),rgb(${m.color}))` }} />
-              </div>
-            </MiniCard>
-            <MiniCard>
-              <span className="text-[13px] font-medium text-muted">Lessons</span>
-              <div className="mt-1.5 font-display text-xl font-semibold">{lessonsDone} / 19</div>
-              <div className="text-[12.5px] text-muted">completed</div>
-            </MiniCard>
-            <MiniCard>
-              <span className="text-[13px] font-medium text-muted">Avg. score</span>
-              <div className="mt-1.5 font-display text-xl font-semibold">{avgScore}%</div>
-              <div className="text-[12.5px] text-muted">across tests</div>
-            </MiniCard>
-          </div>
-
-          <div className="mt-6 rounded-[22px] border border-[var(--line-2)] bg-white p-[30px]" style={{ boxShadow: "var(--shadow-sm)" }}>
-            <h3 className="font-display text-xl font-semibold">Topics</h3>
-            <div className="mt-3.5 flex flex-col gap-2.5">
-              {topics.map((tp) => (
-                <div key={tp.t} className="flex items-center justify-between rounded-xl border border-[var(--line-2)] bg-paper-3 px-3.5 py-3 text-[13px]">
-                  <span className="flex items-center gap-2.5">
-                    {tp.done ? (
-                      <span className="grid h-[18px] w-[18px] place-items-center rounded-md bg-[var(--sage)]"><CheckSmallWhite /></span>
-                    ) : (
-                      <span className="h-[18px] w-[18px] rounded-md border-[1.5px] border-[var(--line)]" />
-                    )}
-                    {tp.t}
-                  </span>
-                  <button onClick={onLesson} className="inline-flex items-center gap-1 text-[13px] font-semibold text-indigo">
-                    {tp.done ? "Review" : "Start"} →
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="mt-5.5 flex gap-3">
-              <button onClick={onTest} className="inline-flex h-11 items-center rounded-full border border-[var(--line)] bg-white px-5 text-sm font-medium text-ink hover:border-ink">
-                Take a test
-              </button>
-              <button onClick={onLesson} className="inline-flex h-11 items-center gap-2 rounded-full bg-indigo px-5 text-sm font-medium text-white hover:bg-[var(--indigo-ink)]">
-                Continue learning →
-              </button>
-            </div>
-          </div>
-        </div>
       </main>
     </>
   );
@@ -830,18 +395,6 @@ function Header({ firstName }: { firstName: string }) {
   );
 }
 
-function SubHeader({ onBack }: { onBack: () => void }) {
-  return (
-    <div className="sticky top-0 z-40 border-b border-[var(--line-2)] bg-paper/85 py-3 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-5 sm:px-8">
-        <button onClick={onBack} className="inline-flex items-center gap-1.5 rounded-full py-2 pl-2.5 pr-3.5 text-sm font-medium text-ink-2 hover:bg-[rgba(20,22,42,.06)]">
-          ← Back to dashboard
-        </button>
-        <LogoMark small />
-      </div>
-    </div>
-  );
-}
 
 function Section({ title, link, children }: { title: string; link?: string; children: React.ReactNode }) {
   return (
@@ -954,17 +507,6 @@ function SmallRing({ pct }: { pct: number }) {
   );
 }
 
-function ScoreRing({ pct, sub }: { pct: number; sub: string }) {
-  return (
-    <div className="relative grid h-[150px] w-[150px] place-items-center rounded-full" style={{ background: `conic-gradient(var(--sage) ${pct}%, var(--paper-2) 0)` }}>
-      <div className="absolute inset-[13px] rounded-full bg-white" />
-      <div className="relative z-[1] text-center">
-        <div className="font-display text-[38px] font-semibold leading-none">{pct}%</div>
-        <div className="mt-1 text-xs text-muted">{sub}</div>
-      </div>
-    </div>
-  );
-}
 
 function teacherInitial(name: string) {
   return name.charAt(0).toUpperCase();
@@ -982,12 +524,6 @@ function LogoMark({ small }: { small?: boolean }) {
       <span className="font-display text-[19px] font-semibold tracking-tight">Lumio</span>
     </span>
   );
-}
-function CheckSmall() {
-  return <svg width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l3.5 3.5L16 6" stroke="var(--sage)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>;
-}
-function CheckSmallWhite() {
-  return <svg width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l3.5 3.5L16 6" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 function FlameIcon() {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3c1 3-1 4-1 6a3 3 0 006 0c0-1-.3-2-1-3 2 1 3.5 3.3 3.5 6a6.5 6.5 0 01-13 0C6.5 8 10 6 12 3z" fill="var(--gold)" stroke="var(--gold-deep)" strokeWidth="1.1" strokeLinejoin="round" /></svg>;
