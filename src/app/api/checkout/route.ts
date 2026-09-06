@@ -59,7 +59,10 @@ export async function POST() {
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
-      automatic_tax: { enabled: false },
+      // Opt out of Managed Payments (Stripe's new merchant-of-record feature).
+      // This is required because Managed Payments forces automatic_tax:true
+      // which in turn requires tax codes on products.
+      managed_payments: { enabled: false },
       success_url: `${siteUrl()}/school?upgraded=1`,
       cancel_url: `${siteUrl()}/upgrade?cancelled=1`,
       allow_promotion_codes: true,
