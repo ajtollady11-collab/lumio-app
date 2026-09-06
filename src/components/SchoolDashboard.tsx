@@ -41,15 +41,23 @@ function meta(name: string) {
 /* deterministic per-subject progress so it's stable */
 
 
-const DEFAULT_PROGRESS = { goalDone: 14, lessonsDone: 24, testsDone: 8, avgScore: 87 };
+const DEFAULT_PROGRESS = { goalDone: 0, lessonsDone: 0, testsDone: 0, avgScore: 0 };
 
 /** Reads saved progress from localStorage once. SSR-safe (returns defaults on server). */
+// Old fake defaults that were shipped — clear them so returning users get zeros
+const OLD_FAKE_DEFAULTS = { goalDone: 14, lessonsDone: 24, testsDone: 8, avgScore: 87 };
+
 function readSaved() {
   if (typeof window === "undefined") return { ...DEFAULT_PROGRESS };
   try {
     const raw = window.localStorage.getItem("lumio_progress");
     if (raw) {
       const d = JSON.parse(raw);
+      // If this looks like the old fake data, wipe it
+      if (d.goalDone === OLD_FAKE_DEFAULTS.goalDone && d.lessonsDone === OLD_FAKE_DEFAULTS.lessonsDone) {
+        window.localStorage.removeItem("lumio_progress");
+        return { ...DEFAULT_PROGRESS };
+      }
       return {
         goalDone: typeof d.goalDone === "number" ? d.goalDone : DEFAULT_PROGRESS.goalDone,
         lessonsDone: typeof d.lessonsDone === "number" ? d.lessonsDone : DEFAULT_PROGRESS.lessonsDone,
@@ -64,7 +72,7 @@ function readSaved() {
 export function SchoolDashboard(props: DashboardProps) {
   const subjects = props.subjects.length
     ? props.subjects
-    : ["Geography", "Mathematics", "English Language", "Biology", "History", "Physics"];
+    : ["Mathematics", "English", "Science"];
 
   const router = useRouter();
   const [toast, setToast] = useState<string | null>(null);
@@ -76,8 +84,8 @@ export function SchoolDashboard(props: DashboardProps) {
   const [testsDone] = useState(saved.testsDone);
   const [avgScore] = useState(saved.avgScore);
   const goalTotal = 20;
-  const streak = 5;
-  const overall = 42;
+  const streak = 0;
+  const overall = 0;
 
   function showToast(msg: string) {
     setToast(msg);
@@ -215,17 +223,17 @@ function Dashboard(
                 <FlameIcon />
               </span>
               <div>
-                <div className="font-display text-xl font-semibold">{streak} day streak</div>
-                <div className="mt-0.5 text-[12.5px] text-muted">Keep it going tomorrow.</div>
+                <div className="font-display text-xl font-semibold">{streak > 0 ? `${streak} day streak` : "Start your streak"}</div>
+                <div className="mt-0.5 text-[12.5px] text-muted">{streak > 0 ? "Keep it going tomorrow." : "Learn something today to begin."}</div>
               </div>
             </div>
           </MiniCard>
           <MiniCard>
             <span className="text-[13px] font-medium text-muted">This week</span>
             <div className="mt-3 flex flex-col gap-2.5">
-              <StatRow k="Lessons" v={lessonsDone} />
-              <StatRow k="Tests" v={testsDone} />
-              <StatRow k="Avg. score" v={`${avgScore}%`} />
+              <StatRow k="Lessons" v={lessonsDone > 0 ? lessonsDone : "—"} />
+              <StatRow k="Tests" v={testsDone > 0 ? testsDone : "—"} />
+              <StatRow k="Avg. score" v={avgScore > 0 ? `${avgScore}%` : "—"} />
             </div>
           </MiniCard>
         </div>
@@ -303,10 +311,9 @@ function Dashboard(
             <div className="rounded-3xl border border-[var(--line-2)] bg-white p-7" style={{ boxShadow: "var(--shadow-sm)" }}>
               <h3 className="font-display text-xl font-semibold">Recent activity</h3>
               <div className="mt-3 flex flex-col">
-                <Activity type="lesson" title='Completed "Weather & Climate" lesson' time="Today" />
-                <Activity type="test" title="Scored 92% on a Geography test" time="Today" score="92%" />
-                <Activity type="start" title='Started "Coastal Landscapes"' time="Yesterday" />
-                <Activity type="review" title="Reviewed 6 mistakes" time="2 days ago" />
+                <div className="py-6 text-center text-sm text-muted">
+                  Your activity will appear here as you learn. Start a lesson or quiz to get going!
+                </div>
               </div>
             </div>
 
@@ -315,14 +322,18 @@ function Dashboard(
               <div className="rounded-3xl border border-[var(--line-2)] bg-white p-7 text-center" style={{ boxShadow: "var(--shadow-sm)" }}>
                 <h3 className="font-display text-xl font-semibold">Learning progress</h3>
                 <div className="mt-2 flex justify-center">
-                  <Ring pct={overall} label="Overall mastery" tone="indigo" />
+                  <Ring pct={overall} label={overall > 0 ? "Overall mastery" : "Start learning"} tone="indigo" />
                 </div>
+                {overall === 0 ? (
+                  <p className="mt-4 text-sm text-muted">Complete lessons and quizzes to track your progress here.</p>
+                ) : (
                 <div className="mt-5 grid grid-cols-2 gap-2.5 text-left">
                   <Stat n={lessonsDone} l="Lessons completed" />
                   <Stat n={testsDone} l="Tests completed" />
-                  <Stat n={`${avgScore}%`} l="Average score" />
-                  <Stat n={streak} l="Day streak" />
+                  <Stat n={avgScore > 0 ? `${avgScore}%` : "—"} l="Average score" />
+                  <Stat n={streak > 0 ? streak : "—"} l="Day streak" />
                 </div>
+                )}
               </div>
 
               <div className="relative overflow-hidden rounded-3xl border border-[var(--line-2)] bg-white p-6" style={{ boxShadow: "var(--shadow-sm)" }}>
