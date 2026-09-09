@@ -78,8 +78,7 @@ export function SchoolDashboard(props: DashboardProps) {
   const [toast, setToast] = useState<string | null>(null);
 
   // progress state (persisted locally).
-  const saved = readSaved();
-  const [goalDone] = useState(saved.goalDone);
+  const [goalDone] = useState(0); // Real goal tracking comes with proper activity recording
   const [lessonsDone, setLessonsDone] = useState(0);
   const [testsDone, setTestsDone] = useState(0);
   const [avgScore, setAvgScore] = useState(0);
@@ -173,11 +172,11 @@ function Dashboard(
       <Header firstName={firstName} />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-8 sm:px-8">
-        <p className="text-sm text-muted">Welcome back to your school</p>
+        <p className="text-sm text-muted">{lessonsDone > 0 || streak > 0 ? "Welcome back to your school" : "Welcome to your school"}</p>
         <h1 className="font-display text-[clamp(30px,5vw,42px)] font-semibold tracking-tight">
           Hello, {firstName}
         </h1>
-        <p className="mt-1 text-[15px] text-ink-2">Ready to continue learning?</p>
+        <p className="mt-1 text-[15px] text-ink-2">{lessonsDone > 0 ? "Ready to continue learning?" : "Your tutor is ready when you are."}</p>
 
         {/* today's learning */}
         <Section title="Today's learning">
@@ -234,7 +233,7 @@ function Dashboard(
                   {goalDone} / {goalTotal} min
                 </div>
                 <div className="mt-0.5 text-[12.5px] text-muted">
-                  {remain > 0 ? `${remain} minutes to go` : "Goal reached — nice work!"}
+                  {remain > 0 ? `${remain} minutes to go` : goalDone > 0 ? "Goal reached — nice work!" : "Start learning to set your first goal"}
                 </div>
               </div>
             </div>
