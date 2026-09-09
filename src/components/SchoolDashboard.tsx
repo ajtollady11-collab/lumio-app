@@ -251,7 +251,7 @@ function Dashboard(
             </div>
           </MiniCard>
           <MiniCard>
-            <span className="text-[13px] font-medium text-muted">This week</span>
+            <span className="text-[13px] font-medium text-muted">This month</span>
             <div className="mt-3 flex flex-col gap-2.5">
               <StatRow k="Lessons" v={lessonsDone > 0 ? lessonsDone : "—"} />
               <StatRow k="Tests" v={testsDone > 0 ? testsDone : "—"} />
