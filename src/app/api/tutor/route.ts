@@ -190,6 +190,9 @@ export async function POST(request: NextRequest) {
   const system = buildSystemPrompt(student ?? null, teacher);
   const anthropic = new Anthropic({ apiKey });
 
+  // Record activity for streak (fire-and-forget — don't block the response)
+  import("@/lib/streak").then(({ recordActivity }) => recordActivity()).catch(() => {});
+
   try {
     // Non-streaming call so we can handle tool use cleanly
     const response = await anthropic.messages.create({

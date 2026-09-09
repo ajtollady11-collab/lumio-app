@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { UsageMeter } from "@/components/UsageMeter";
 
@@ -84,7 +84,15 @@ export function SchoolDashboard(props: DashboardProps) {
   const [testsDone] = useState(saved.testsDone);
   const [avgScore] = useState(saved.avgScore);
   const goalTotal = 20;
-  const streak = 0;
+  const [streak, setStreak] = useState(0);
+
+  // Fetch real streak from database on mount
+  useEffect(() => {
+    fetch("/api/streak")
+      .then((r) => r.ok ? r.json() : { streak: 0 })
+      .then((d) => setStreak(d.streak ?? 0))
+      .catch(() => {});
+  }, []);
   const overall = 0;
 
   function showToast(msg: string) {
@@ -253,7 +261,7 @@ function Dashboard(
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <ModeCard label="Learn a topic" desc="A guided lesson, made for you" icon="📖" bg="91,84,224" onClick={() => onLearn("lesson")} />
             <ModeCard label="Watch a lecture" desc="Slide-by-slide teaching" icon="🎓" bg="63,120,180" onClick={() => onLearn("lecture")} />
-            <ModeCard label="Flashcards" desc="Revise key facts fast" icon="🃏" bg="232,184,75" onClick={() => onLearn("flashcards")} />
+            <ModeCard label="Flashcards" desc="Revise key facts fast" icon="📋" bg="232,184,75" onClick={() => onLearn("flashcards")} />
             <ModeCard label="Quiz me" desc="Test yourself, get feedback" icon="✅" bg="111,160,136" onClick={() => onLearn("quiz")} />
           </div>
         </Section>

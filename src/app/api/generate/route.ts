@@ -109,6 +109,9 @@ export async function POST(request: NextRequest) {
   const userPrompt = `Subject: ${subject}${topic ? `\nTopic: ${topic}` : "\n(Choose a suitable core topic for this subject.)"}\n\n${instructionFor(body.mode)}`;
 
   const anthropic = new Anthropic({ apiKey });
+
+  // Record activity for streak (fire-and-forget)
+  import("@/lib/streak").then(({ recordActivity }) => recordActivity()).catch(() => {});
   try {
     const res = await anthropic.messages.create({
       model: MODEL,
