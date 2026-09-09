@@ -143,6 +143,11 @@ export async function POST(request: NextRequest) {
       data = JSON.parse(match[0]);
     }
 
+    // Record completion for stats (fire-and-forget)
+    import("@/lib/completions").then(({ recordCompletion }) =>
+      recordCompletion(body.mode, subject)
+    ).catch(() => {});
+
     return NextResponse.json({ data });
   } catch {
     return NextResponse.json(

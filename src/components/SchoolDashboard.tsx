@@ -80,9 +80,23 @@ export function SchoolDashboard(props: DashboardProps) {
   // progress state (persisted locally).
   const saved = readSaved();
   const [goalDone] = useState(saved.goalDone);
-  const [lessonsDone] = useState(saved.lessonsDone);
-  const [testsDone] = useState(saved.testsDone);
-  const [avgScore] = useState(saved.avgScore);
+  const [lessonsDone, setLessonsDone] = useState(0);
+  const [testsDone, setTestsDone] = useState(0);
+  const [avgScore, setAvgScore] = useState(0);
+
+  // Fetch real completion stats
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (d) {
+          setLessonsDone(d.lessonsThisMonth ?? 0);
+          setTestsDone(d.quizzesThisMonth ?? 0);
+          setAvgScore(d.avgScore ?? 0);
+        }
+      })
+      .catch(() => {});
+  }, []);
   const goalTotal = 20;
   const [streak, setStreak] = useState(0);
 
