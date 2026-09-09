@@ -82,6 +82,7 @@ const TUTOR_TOOLS: Anthropic.Tool[] = [
 function buildSystemPrompt(
   student: StudentProfile | null,
   teacher: TeacherProfile | null,
+  memory: string,
 ): string {
   const name = student?.first_name ?? "the student";
   const year = student?.school_year ? `, in ${student.school_year}` : "";
@@ -89,6 +90,9 @@ function buildSystemPrompt(
   const subjects = student?.subjects?.length ? student.subjects.join(", ") : "a range of school subjects";
   const teacherName = teacher?.teacher_name ?? "Lumio";
   const personality = PERSONALITY_OPTIONS.find((p) => p.value === teacher?.personality)?.label ?? "Encouraging";
+  const memorySection = memory
+    ? `\n# WHAT YOU REMEMBER ABOUT ${name.toUpperCase()}\n${memory}\nUse this naturally in conversation — reference past struggles or progress when relevant. Don't recite it back robotically.`
+    : "";
 
   return `You are ${teacherName}, a warm, patient personal AI tutor inside Lumio — a personal AI school. You are teaching ${name}${year}${curriculum}. Their chosen subjects are: ${subjects}.
 
@@ -134,7 +138,7 @@ Help ${name} UNDERSTAND — never just give final answers to assessed work.
 - Never ask for personal information.
 
 # TONE
-Warm, calm, intelligent, personal. The tutor every student wishes they had.`;
+Warm, calm, intelligent, personal. The tutor every student wishes they had.${memorySection}`;
 }
 
 // ── Route handler ─────────────────────────────────────────────────────────────
@@ -187,7 +191,7 @@ export async function POST(request: NextRequest) {
     teacher = t;
   }
 
-  const system = buildSystemPrompt(student ?? null, teacher);
+  const system = buildSystemPrompt(student ?? null, teacher, await (await import("@/lib/memory")).loadMemory(user.id));
   const anthropic = new Anthropic({ apiKey });
 
   // Record activity for streak (fire-and-forget — don't block the response)
@@ -228,6 +232,14 @@ export async function POST(request: NextRequest) {
           autoNavigate,
         });
       }
+    }
+
+    // Update tutor memory in the background (don't block response)
+    if (textContent && cleaned.length >= 2) {
+      const allMessages = [...cleaned, { role: "assistant" as const, content: textContent }];
+      import("@/lib/memory").then(({ updateMemory, loadMemory }) =>
+        loadMemory(user.id).then((existing) => updateMemory(user.id, allMessages, existing))
+      ).catch(() => {});
     }
 
     return NextResponse.json({
