@@ -52,9 +52,10 @@ function emailHtml(firstName: string, streak: number, teacherName: string): stri
 }
 
 export async function POST(request: NextRequest) {
-  // Verify the cron secret
+  // Accept either our manual CRON_SECRET or Vercel's built-in cron auth header
   const auth = request.headers.get("authorization");
-  if (CRON_SECRET && auth !== `Bearer ${CRON_SECRET}`) {
+  const isVercelCron = request.headers.get("x-vercel-cron") === "1";
+  if (!isVercelCron && CRON_SECRET && auth !== `Bearer ${CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
