@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Paywall } from "@/components/Paywall";
 import { useVoice } from "@/lib/useVoice";
+import { useSpeechInput } from "@/lib/useSpeechInput";
 
 interface Msg {
   role: "user" | "assistant";
@@ -45,6 +46,18 @@ export function TutorChat({
   const router = useRouter();
   const { speak, stop, state: voiceState } = useVoice(voicePreference);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [speechError, setSpeechError] = useState<string | null>(null);
+
+  const { start: startListening, stop: stopListening, state: speechState, supported: speechSupported } = useSpeechInput({
+    onResult: (transcript) => {
+      setSpeechError(null);
+      send(transcript);
+    },
+    onError: (err) => {
+      setSpeechError(err);
+      setTimeout(() => setSpeechError(null), 3000);
+    },
+  });
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -243,26 +256,78 @@ export function TutorChat({
       {/* composer */}
       <div className="sticky bottom-0 border-t border-[var(--line-2)] bg-paper/90 backdrop-blur">
         <div className="mx-auto max-w-3xl px-5 py-3.5 sm:px-6">
+
+          {/* Speech error */}
+          {speechError && (
+            <div className="mb-2 rounded-xl bg-[rgba(224,118,91,.12)] px-3 py-2 text-center text-[13px] text-[var(--coral)]">
+              {speechError}
+            </div>
+          )}
+
+          {/* Listening overlay */}
+          {speechState === "listening" && (
+            <div className="mb-2 flex items-center justify-center gap-2.5 rounded-[20px] border border-[var(--indigo)]/20 bg-[var(--indigo)]/8 py-3">
+              <span className="flex gap-1">
+                <span className="inline-block h-4 w-1 animate-bounce rounded-full bg-indigo" style={{ animationDelay: "0ms" }} />
+                <span className="inline-block h-4 w-1 animate-bounce rounded-full bg-indigo" style={{ animationDelay: "150ms" }} />
+                <span className="inline-block h-4 w-1 animate-bounce rounded-full bg-indigo" style={{ animationDelay: "300ms" }} />
+              </span>
+              <span className="text-[14px] font-medium text-indigo">Listening… speak now</span>
+              <button onClick={stopListening} className="rounded-full bg-[var(--indigo)] px-3 py-1 text-[12px] font-medium text-white">
+                Cancel
+              </button>
+            </div>
+          )}
+
           <div className="flex items-end gap-2 rounded-[22px] border border-[var(--line)] bg-white p-2 pl-4" style={{ boxShadow: "var(--shadow-sm)" }}>
             <textarea ref={taRef} value={input}
               onChange={(e) => { setInput(e.target.value); autoGrow(); }}
               onKeyDown={onKeyDown} rows={1}
-              placeholder={`Ask ${teacherName} anything about your studies…`}
+              placeholder={speechSupported ? `Type or tap 🎤 to speak to ${teacherName}…` : `Ask ${teacherName} anything about your studies…`}
               className="max-h-40 flex-1 resize-none bg-transparent py-2 text-[15px] leading-relaxed text-ink outline-none placeholder:text-muted"
             />
-            <button onClick={() => send(input)} disabled={!input.trim() || loading} aria-label="Send"
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-indigo text-white transition-colors hover:bg-[var(--indigo-ink)] disabled:opacity-40">
-              {loading ? (
-                <span className="h-3.5 w-3.5 animate-pulse rounded-sm bg-white" />
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </button>
+
+            {/* Mic button — shown when speech is supported and input is empty */}
+            {speechSupported && !input.trim() && (
+              <button
+                onClick={speechState === "listening" ? stopListening : startListening}
+                disabled={loading || speechState === "processing"}
+                aria-label={speechState === "listening" ? "Stop listening" : "Speak to tutor"}
+                className={`grid h-10 w-10 shrink-0 place-items-center rounded-full transition-all disabled:opacity-40 ${
+                  speechState === "listening"
+                    ? "animate-pulse bg-red-500 text-white"
+                    : "border border-[var(--line)] bg-white text-ink-2 hover:border-indigo hover:text-indigo"
+                }`}
+              >
+                {speechState === "listening" ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="12" height="16" rx="2"/></svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                  </svg>
+                )}
+              </button>
+            )}
+
+            {/* Send button — shown when there's text typed */}
+            {(!speechSupported || input.trim()) && (
+              <button onClick={() => send(input)} disabled={!input.trim() || loading} aria-label="Send"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-indigo text-white transition-colors hover:bg-[var(--indigo-ink)] disabled:opacity-40">
+                {loading ? (
+                  <span className="h-3.5 w-3.5 animate-pulse rounded-sm bg-white" />
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+            )}
           </div>
           <p className="mt-2 text-center text-[11.5px] text-muted">
-            {teacherName} is an AI tutor focused on learning.
+            {speechSupported ? `Tap 🎤 to talk · ${teacherName} is an AI tutor` : `${teacherName} is an AI tutor focused on learning.`}
           </p>
         </div>
       </div>
