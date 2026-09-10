@@ -27,9 +27,15 @@ function instructionFor(mode: Mode): string {
 {"type":"lesson","title":"<lesson title>","intro":"<1-2 sentence hook>","sections":[{"heading":"<heading>","body":"<2-4 sentences, clear and simple>"}],"keyPoints":["<key point>","<key point>","<key point>"],"check":{"question":"<one multiple-choice question>","options":["<a>","<b>","<c>","<d>"],"correct":<0-3>,"explanation":"<why>"}}
 Use 3-4 sections. Pitch it at the student's school year.`;
     case "lecture":
-      return `Create a structured LECTURE — like a teacher presenting, broken into slides. Return JSON:
-{"type":"lecture","title":"<lecture title>","slides":[{"heading":"<slide heading>","points":["<bullet>","<bullet>","<bullet>"],"narration":"<2-3 sentences the teacher would say aloud for this slide>"}]}
-Use 4-6 slides that build understanding progressively.`;
+      return `Create a structured LECTURE with rich content — like a real teacher presenting with a whiteboard. Return JSON:
+{"type":"lecture","title":"<lecture title>","slides":[{"heading":"<slide heading>","points":["<bullet>","<bullet>","<bullet>"],"example":{"label":"<e.g. Worked Example, Real-World Example, Key Formula, Diagram>","content":"<the actual example, worked step-by-step if maths, or a scenario/analogy if conceptual. For maths: show full working. For science/humanities: a concrete scenario or analogy."},"narration":"<2-3 sentences the teacher says aloud — conversational, as if speaking to the student>"}]}
+Rules:
+- Use 5-6 slides that build progressively
+- Every slide MUST have a concrete example (worked problem, analogy, diagram, or real-world application)
+- For maths/science: show step-by-step working in the example
+- For humanities/languages: use real-world scenarios or memorable analogies
+- Keep bullet points to 2-3 short, clear facts
+- Make narration sound natural and encouraging, like a great teacher`;
     case "flashcards":
       return `Create a FLASHCARD deck for revision. Return JSON:
 {"type":"flashcards","title":"<deck title>","cards":[{"front":"<question or term>","back":"<concise answer/definition>"}]}

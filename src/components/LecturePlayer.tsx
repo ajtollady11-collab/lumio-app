@@ -7,6 +7,7 @@ import { useVoice } from "@/lib/useVoice";
 interface Slide {
   heading: string;
   points: string[];
+  example?: { label: string; content: string };
   narration: string;
 }
 
@@ -32,7 +33,8 @@ export function LecturePlayer({
   firstName: string;
 }) {
   const router = useRouter();
-  const [phase, setPhase] = useState<Phase>("loading");
+  const [phase, setPhase] = useState<Phase>(topic ? "loading" : "ready");
+  const [topicInput, setTopicInput] = useState(topic);
   const [lecture, setLecture] = useState<LectureData | null>(null);
   const [slideIndex, setSlideIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -40,14 +42,15 @@ export function LecturePlayer({
   const autoAdvanceRef = useRef(false);
   const { speak, stop, state: voiceState } = useVoice(voicePreference);
 
-  // Generate lecture content on mount
+  // Generate lecture content — only when we have a topic
   useEffect(() => {
+    if (!topicInput) return; // Wait for topic picker
     async function generate() {
       try {
         const res = await fetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: "lecture", subject, topic }),
+          body: JSON.stringify({ mode: "lecture", subject, topic: topicInput }),
         });
         if (!res.ok) throw new Error("Generation failed");
         const json = await res.json();
@@ -60,8 +63,8 @@ export function LecturePlayer({
         setPhase("error");
       }
     }
-    generate();
-  }, [subject, topic]);
+    if (phase === "loading") generate();
+  }, [subject, topicInput, phase]);
 
   // Speak narration for current slide
   const speakSlide = useCallback((slide: Slide) => {
@@ -223,6 +226,46 @@ export function LecturePlayer({
             </div>
           )}
 
+          {/* Topic picker — shown when no topic given */}
+          {phase === "ready" && !lecture && (
+            <div className="flex flex-1 flex-col items-center justify-center gap-6 px-12">
+              <div className="text-center">
+                <div className="text-xs font-semibold uppercase tracking-widest text-[var(--indigo-2)]">{subject}</div>
+                <h1 className="mt-3 font-display text-3xl font-semibold">What would you like a lecture on?</h1>
+                <p className="mt-2 text-white/50">Your teacher will explain it slide by slide, with worked examples.</p>
+              </div>
+              <div className="flex w-full max-w-md flex-col gap-3">
+                <input
+                  type="text"
+                  value={topicInput}
+                  onChange={(e) => setTopicInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && topicInput.trim()) setPhase("loading");
+                  }}
+                  placeholder={`e.g. Quadratic equations, The water cycle, World War 1…`}
+                  className="rounded-2xl border border-white/20 bg-white/10 px-5 py-4 text-[15px] text-white placeholder:text-white/30 outline-none focus:border-[var(--indigo)]"
+                  autoFocus
+                />
+                <button
+                  onClick={() => { if (topicInput.trim()) setPhase("loading"); }}
+                  disabled={!topicInput.trim()}
+                  className="rounded-full bg-[var(--indigo)] px-6 py-3.5 text-[15px] font-semibold disabled:opacity-40 hover:opacity-90"
+                >
+                  Generate lecture →
+                </button>
+              </div>
+              {/* Quick topic suggestions */}
+              <div className="flex flex-wrap justify-center gap-2">
+                {[`Introduction to ${subject}`, `Key concepts in ${subject}`, `Common mistakes in ${subject}`].map((s) => (
+                  <button key={s} onClick={() => { setTopicInput(s); setPhase("loading"); }}
+                    className="rounded-full border border-white/15 px-3.5 py-1.5 text-[13px] text-white/50 hover:border-white/30 hover:text-white/80">
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {phase === "ready" && lecture && (
             <div className="flex flex-1 flex-col items-center justify-center gap-8 px-12">
               <div className="text-center">
@@ -251,20 +294,29 @@ export function LecturePlayer({
               </div>
 
               {/* Bullet points */}
-              <div className="flex-1 space-y-4">
+              <div className="space-y-3">
                 {slide.points.map((point, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-3 rounded-xl bg-white/5 px-5 py-4"
-                    style={{ animationDelay: `${i * 100}ms` }}
-                  >
+                  <div key={i} className="flex items-start gap-3 rounded-xl bg-white/5 px-5 py-3.5">
                     <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--indigo)]/20 text-[11px] font-bold text-[var(--indigo-2)]">
                       {i + 1}
                     </span>
-                    <p className="text-[16px] leading-relaxed text-white/90">{point}</p>
+                    <p className="text-[15px] leading-relaxed text-white/90">{point}</p>
                   </div>
                 ))}
               </div>
+
+              {/* Worked example */}
+              {slide.example && (
+                <div className="rounded-2xl border border-[var(--gold)]/30 bg-[var(--gold)]/10 px-6 py-5">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="text-lg">✏️</span>
+                    <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--gold)]">{slide.example.label}</span>
+                  </div>
+                  <p className="whitespace-pre-wrap font-mono text-[14px] leading-relaxed text-white/80">
+                    {slide.example.content}
+                  </p>
+                </div>
+              )}
 
               {/* Narration text */}
               <div className={`mt-6 rounded-xl border px-5 py-4 text-[14px] leading-relaxed text-white/60 transition-all ${
