@@ -26,17 +26,26 @@ export function UsageMeter() {
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/usage")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (alive) {
-          setData(d);
-          setLoaded(true);
-        }
-      })
-      .catch(() => alive && setLoaded(true));
+
+    function fetchUsage() {
+      fetch("/api/usage")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (alive) {
+            setData(d);
+            setLoaded(true);
+          }
+        })
+        .catch(() => alive && setLoaded(true));
+    }
+
+    fetchUsage();
+    // Refresh every 60s in case they've been doing lessons
+    const interval = setInterval(fetchUsage, 60_000);
+
     return () => {
       alive = false;
+      clearInterval(interval);
     };
   }, []);
 

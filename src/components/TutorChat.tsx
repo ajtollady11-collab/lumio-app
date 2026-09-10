@@ -18,17 +18,13 @@ interface Action {
   autoNavigate: boolean;
 }
 
-const SUGGESTIONS = [
-  "I don't understand quadratic equations",
-  "Quiz me on what I've been studying",
-  "Make me some flashcards to revise",
-  "Give me a lecture on photosynthesis",
-];
+
+
 
 const ACTION_META: Record<string, { label: string; icon: string; color: string; mode: string }> = {
   generate_lesson:     { label: "Go to lesson",     icon: "📖", color: "91,84,224",  mode: "lesson" },
   generate_quiz:       { label: "Start quiz",        icon: "✅", color: "111,160,136", mode: "quiz" },
-  generate_flashcards: { label: "Open flashcards",   icon: "🃏", color: "232,184,75",  mode: "flashcards" },
+  generate_flashcards: { label: "Open flashcards",   icon: "📋", color: "232,184,75",  mode: "flashcards" },
   generate_lecture:    { label: "Watch lecture",     icon: "🎓", color: "63,120,180",  mode: "lecture" },
 };
 
@@ -36,10 +32,12 @@ export function TutorChat({
   firstName,
   teacherName,
   personalityLabel,
+  subjects,
 }: {
   firstName: string;
   teacherName: string;
   personalityLabel: string;
+  subjects: string[];
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -48,6 +46,16 @@ export function TutorChat({
   const [error, setError] = useState<string | null>(null);
   const [paywall, setPaywall] = useState<{ title: string; body: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Generate subject-aware suggestions
+  const subj1 = subjects[0] ?? "a subject";
+  const subj2 = subjects[1] ?? subjects[0] ?? "a topic";
+  const SUGGESTIONS = [
+    `I don't understand something in ${subj1}`,
+    `Quiz me on ${subj2}`,
+    `Make me flashcards to revise ${subj1}`,
+    `Give me a lecture on a ${subj1} topic`,
+  ];
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   const started = messages.length > 0;

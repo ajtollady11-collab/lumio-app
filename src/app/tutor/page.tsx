@@ -36,6 +36,7 @@ export default async function TutorPage() {
       firstName={student.first_name}
       teacherName={teacher?.teacher_name ?? "Alex"}
       personalityLabel={personalityLabel}
+      subjects={student.subjects ?? []}
     />
   );
 }

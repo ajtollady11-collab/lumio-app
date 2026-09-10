@@ -83,30 +83,43 @@ export function SchoolDashboard(props: DashboardProps) {
   const [testsDone, setTestsDone] = useState(0);
   const [avgScore, setAvgScore] = useState(0);
 
-  // Fetch real completion stats
+  // Fetch real completion stats (poll every 60s)
   useEffect(() => {
-    fetch("/api/stats")
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => {
-        if (d) {
-          setLessonsDone(d.lessonsThisMonth ?? 0);
-          setTestsDone(d.quizzesThisMonth ?? 0);
-          setAvgScore(d.avgScore ?? 0);
-        }
-      })
-      .catch(() => {});
+    function fetchStats() {
+      fetch("/api/stats")
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => {
+          if (d) {
+            setLessonsDone(d.lessonsThisMonth ?? 0);
+            setTestsDone(d.quizzesThisMonth ?? 0);
+            setAvgScore(d.avgScore ?? 0);
+          }
+        })
+        .catch(() => {});
+    }
+    fetchStats();
+    const t = setInterval(fetchStats, 60_000);
+    return () => clearInterval(t);
   }, []);
+
   const goalTotal = 20;
   const [streak, setStreak] = useState(0);
 
-  // Fetch real streak from database on mount
+  // Fetch real streak (poll every 60s)
   useEffect(() => {
-    fetch("/api/streak")
-      .then((r) => r.ok ? r.json() : { streak: 0 })
-      .then((d) => setStreak(d.streak ?? 0))
-      .catch(() => {});
+    function fetchStreak() {
+      fetch("/api/streak")
+        .then((r) => r.ok ? r.json() : { streak: 0 })
+        .then((d) => setStreak(d.streak ?? 0))
+        .catch(() => {});
+    }
+    fetchStreak();
+    const t = setInterval(fetchStreak, 60_000);
+    return () => clearInterval(t);
   }, []);
-  const overall = 0;
+  // Derive overall mastery from real completions — rough but real
+  // Each lesson/quiz contributes toward mastery (cap at 95% to feel aspirational)
+  const overall = Math.min(95, Math.round((lessonsDone * 8) + (testsDone * 5)));
 
   function showToast(msg: string) {
     setToast(msg);
