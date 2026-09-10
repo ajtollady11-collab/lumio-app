@@ -143,8 +143,20 @@ export function SchoolDashboard(props: DashboardProps) {
         avgScore={avgScore}
         overall={overall}
         onAskTeacher={() => router.push("/tutor")}
-        onLearn={(mode) => router.push(mode ? `/learn?mode=${mode}` : "/learn")}
-        onLearnSubject={(s, mode) => router.push(`/learn?mode=${mode}&subject=${encodeURIComponent(s)}`)}
+        onLearn={(mode) => {
+          if (mode === "lecture") {
+            router.push(`/lecture?subject=${encodeURIComponent(subjects[0] ?? "Mathematics")}&topic=`);
+          } else {
+            router.push(mode ? `/learn?mode=${mode}` : "/learn");
+          }
+        }}
+        onLearnSubject={(s, mode) => {
+          if (mode === "lecture") {
+            router.push(`/lecture?subject=${encodeURIComponent(s)}&topic=`);
+          } else {
+            router.push(`/learn?mode=${mode}&subject=${encodeURIComponent(s)}`);
+          }
+        }}
       />
 
       {toast && (

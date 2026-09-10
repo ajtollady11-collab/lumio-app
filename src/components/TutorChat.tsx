@@ -92,7 +92,10 @@ export function TutorChat({
   function navigate(action: Action) {
     const meta = ACTION_META[action.tool];
     if (!meta) return;
-    const url = `/learn?mode=${meta.mode}&subject=${encodeURIComponent(action.subject)}&topic=${encodeURIComponent(action.topic)}`;
+    // Lectures get their own full-screen player
+    const url = action.tool === "generate_lecture"
+      ? `/lecture?subject=${encodeURIComponent(action.subject)}&topic=${encodeURIComponent(action.topic)}`
+      : `/learn?mode=${meta.mode}&subject=${encodeURIComponent(action.subject)}&topic=${encodeURIComponent(action.topic)}`;
     router.push(url);
   }
 

@@ -12,7 +12,7 @@ const MODE_META: Record<
 > = {
   lesson: { label: "Learn a topic", blurb: "A guided lesson with a check for understanding", color: "91,84,224", icon: "📖" },
   lecture: { label: "Watch a lecture", blurb: "A structured, slide-by-slide teacher explanation", color: "63,120,180", icon: "🎓" },
-  flashcards: { label: "Flashcards", blurb: "Flip through key facts to revise fast", color: "232,184,75", icon: "🃏" },
+  flashcards: { label: "Flashcards", blurb: "Flip through key facts to revise fast", color: "232,184,75", icon: "📋" },
   quiz: { label: "Quiz me", blurb: "Test yourself with instant feedback", color: "111,160,136", icon: "✅" },
 };
 
@@ -68,6 +68,11 @@ export function LearnModes({
   // Auto-generate when tutor sends student here with mode + subject + topic pre-filled
   useEffect(() => {
     if (initialMode && initialSubject && initialTopic) {
+      // Lectures get their own full-screen player
+      if (initialMode === "lecture") {
+        router.replace(`/lecture?subject=${encodeURIComponent(initialSubject)}&topic=${encodeURIComponent(initialTopic)}`);
+        return;
+      }
       // Small delay so the page renders before generating
       const t = setTimeout(() => generate(), 400);
       return () => clearTimeout(t);
@@ -145,7 +150,15 @@ export function LearnModes({
                   return (
                     <button
                       key={m}
-                      onClick={() => setMode(m)}
+                      onClick={() => {
+                        if (m === "lecture") {
+                          // Lecture gets its own full-screen player
+                          const s = subject === "__other__" ? otherSubject.trim() : subject;
+                          router.push(`/lecture?subject=${encodeURIComponent(s || subject)}&topic=${encodeURIComponent(topic)}`);
+                        } else {
+                          setMode(m);
+                        }
+                      }}
                       className="flex items-start gap-4 rounded-3xl border border-[var(--line-2)] bg-white p-6 text-left transition-transform hover:-translate-y-1"
                       style={{ boxShadow: "var(--shadow-sm)" }}
                     >
