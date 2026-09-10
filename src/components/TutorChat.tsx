@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Paywall } from "@/components/Paywall";
+import { useVoice } from "@/lib/useVoice";
 
 interface Msg {
   role: "user" | "assistant";
@@ -33,13 +34,17 @@ export function TutorChat({
   teacherName,
   personalityLabel,
   subjects,
+  voicePreference = "neutral",
 }: {
   firstName: string;
   teacherName: string;
   personalityLabel: string;
   subjects: string[];
+  voicePreference?: string;
 }) {
   const router = useRouter();
+  const { speak, stop, state: voiceState } = useVoice(voicePreference);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -116,6 +121,11 @@ export function TutorChat({
       // Add the assistant message with any actions attached
       setMessages((m) => [...m, { role: "assistant", content: textContent, actions }]);
 
+      // Auto-speak the tutor's text response if voice is on
+      if (voiceEnabled && textContent) {
+        speak(textContent);
+      }
+
       // Auto-navigate for lessons and quizzes (after a short delay so user sees the message)
       const autoActions = actions.filter((a) => a.autoNavigate);
       if (autoActions.length > 0) {
@@ -140,17 +150,33 @@ export function TutorChat({
       {/* header */}
       <div className="sticky top-0 z-40 border-b border-[var(--line-2)] bg-paper/85 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 sm:px-6">
-          <button onClick={() => router.push("/school")} className="inline-flex items-center gap-1.5 rounded-full py-2 pl-2.5 pr-3.5 text-sm font-medium text-ink-2 hover:bg-[rgba(20,22,42,.06)]">
+          <button onClick={() => { stop(); router.push("/school"); }} className="inline-flex items-center gap-1.5 rounded-full py-2 pl-2.5 pr-3.5 text-sm font-medium text-ink-2 hover:bg-[rgba(20,22,42,.06)]">
             ← Back to dashboard
           </button>
-          <div className="flex items-center gap-2.5">
-            <span className="relative grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[var(--indigo-2)] to-[var(--indigo)] text-sm font-semibold text-white">
-              {teacherName.charAt(0).toUpperCase()}
-              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-paper bg-[var(--sage)]" />
-            </span>
-            <div className="leading-tight">
-              <div className="text-sm font-semibold">{teacherName}</div>
-              <div className="text-xs text-muted">{personalityLabel} · online</div>
+          <div className="flex items-center gap-3">
+            {/* Voice toggle */}
+            <button
+              onClick={() => { if (voiceEnabled) stop(); setVoiceEnabled((v) => !v); }}
+              title={voiceEnabled ? "Turn off voice" : "Turn on voice"}
+              className={`grid h-9 w-9 place-items-center rounded-full border transition-colors ${voiceEnabled ? "border-[var(--indigo)]/40 bg-[var(--indigo)]/10 text-indigo" : "border-[var(--line)] bg-white text-muted"}`}
+            >
+              {voiceState === "loading" ? (
+                <span className="h-3 w-3 animate-pulse rounded-full bg-current" />
+              ) : voiceState === "playing" ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+              )}
+            </button>
+            <div className="flex items-center gap-2.5">
+              <span className="relative grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[var(--indigo-2)] to-[var(--indigo)] text-sm font-semibold text-white">
+                {teacherName.charAt(0).toUpperCase()}
+                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-paper bg-[var(--sage)]" />
+              </span>
+              <div className="leading-tight">
+                <div className="text-sm font-semibold">{teacherName}</div>
+                <div className="text-xs text-muted">{personalityLabel} · {voiceEnabled ? "voice on" : "online"}</div>
+              </div>
             </div>
           </div>
         </div>
