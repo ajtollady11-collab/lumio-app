@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const maxDuration = 30;
 
 const MODEL = "claude-haiku-4-5";
-const MAX_TOKENS = 1024;
+const MAX_TOKENS = 600; // Keep responses concise — faster TTS and better for voice
 const MAX_HISTORY = 20;
 
 interface ChatMessage {
@@ -138,7 +138,10 @@ Help ${name} UNDERSTAND — never just give final answers to assessed work.
 - Never ask for personal information.
 
 # TONE
-Warm, calm, intelligent, personal. The tutor every student wishes they had.${memorySection}`;
+Warm, calm, intelligent, personal. The tutor every student wishes they had.
+
+# RESPONSE STYLE
+Keep responses SHORT and CONVERSATIONAL — 2-4 sentences maximum unless you're explaining something complex. This is a real-time voice conversation. Speak naturally, not in essays. If you need to explain more, ask a follow-up question and let the student respond.${memorySection}`;
 }
 
 // ── Route handler ─────────────────────────────────────────────────────────────

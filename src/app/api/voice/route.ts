@@ -21,7 +21,7 @@ const VOICES: Record<string, string> = {
   neutral: "EXAVITQu4vr4xnSDxMaL", // Default to Sarah
 };
 
-const MAX_CHARS = 500;
+const MAX_CHARS = 300; // Shorter = faster audio start
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           text: clean,
-          model_id: "eleven_turbo_v2",
+          model_id: "eleven_flash_v2_5", // Fastest model — lowest latency
           voice_settings: {
             stability: 0.5,
             similarity_boost: 0.75,

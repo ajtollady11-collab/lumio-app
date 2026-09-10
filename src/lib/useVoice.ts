@@ -8,16 +8,17 @@ export function useVoice(voicePreference: string = "neutral") {
   const [state, setState] = useState<VoiceState>("idle");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const urlRef = useRef<string | null>(null);
 
   const speak = useCallback(async (text: string) => {
-    // Stop any current playback
+    // Stop current playback immediately
     if (audioRef.current) {
       audioRef.current.pause();
+      audioRef.current.src = "";
       audioRef.current = null;
     }
-    if (abortRef.current) {
-      abortRef.current.abort();
-    }
+    if (abortRef.current) abortRef.current.abort();
+    if (urlRef.current) { URL.revokeObjectURL(urlRef.current); urlRef.current = null; }
 
     if (!text.trim()) return;
 
@@ -32,24 +33,33 @@ export function useVoice(voicePreference: string = "neutral") {
         signal: abortRef.current.signal,
       });
 
-      if (!res.ok) {
-        setState("error");
-        return;
-      }
+      if (!res.ok) { setState("error"); return; }
 
+      // Get the audio data and play immediately
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
+      urlRef.current = url;
+
+      const audio = new Audio();
       audioRef.current = audio;
+
+      audio.oncanplay = () => {
+        if (audioRef.current === audio) {
+          setState("playing");
+          audio.play().catch(() => setState("error"));
+        }
+      };
 
       audio.onended = () => {
         setState("idle");
-        URL.revokeObjectURL(url);
+        if (urlRef.current) { URL.revokeObjectURL(urlRef.current); urlRef.current = null; }
       };
+
       audio.onerror = () => setState("error");
 
-      setState("playing");
-      await audio.play();
+      // Set src and load — audio starts buffering immediately
+      audio.src = url;
+      audio.load();
 
     } catch (e: unknown) {
       if ((e as Error)?.name === "AbortError") {
@@ -63,11 +73,11 @@ export function useVoice(voicePreference: string = "neutral") {
   const stop = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
+      audioRef.current.src = "";
       audioRef.current = null;
     }
-    if (abortRef.current) {
-      abortRef.current.abort();
-    }
+    if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
+    if (urlRef.current) { URL.revokeObjectURL(urlRef.current); urlRef.current = null; }
     setState("idle");
   }, []);
 
