@@ -275,7 +275,14 @@ export function LearnModes({
           {/* Result */}
           {data && !loading && (
             <div className="pb-10">
-              {data.type === "lesson" && <LessonView d={data} />}
+              {data.type === "lesson" && <LessonView d={data} onSaveNotes={() => {
+                const effectiveSubject = subject === "__other__" ? otherSubject : subject;
+                fetch("/api/notes", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ subject: effectiveSubject, topic, content: data }),
+                }).catch(() => {});
+              }} />}
               {data.type === "lecture" && <LectureView d={data} />}
               {data.type === "flashcards" && <FlashcardsView d={data} />}
               {data.type === "quiz" && <QuizView d={data} subject={subject === "__other__" ? otherSubject : subject} />}
@@ -305,8 +312,14 @@ export function LearnModes({
 }
 
 /* ================= LESSON ================= */
-function LessonView({ d }: { d: LessonData }) {
+function LessonView({ d, onSaveNotes }: { d: LessonData; onSaveNotes?: () => void }) {
   const [picked, setPicked] = useState<number | null>(null);
+
+  // Auto-save notes when lesson loads
+  useEffect(() => {
+    onSaveNotes?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <div>
       <h1 className="font-display text-[clamp(26px,4vw,34px)] font-semibold tracking-tight">{d.title}</h1>

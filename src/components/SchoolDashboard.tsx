@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { UsageMeter } from "@/components/UsageMeter";
+import { ExamCountdown } from "@/components/ExamCountdown";
+import { LessonNotes } from "@/components/LessonNotes";
+import { usePushNotifications } from "@/lib/usePushNotifications";
 
 /* ---------- types passed from the server component ---------- */
 export interface DashboardProps {
@@ -169,11 +172,43 @@ export function SchoolDashboard(props: DashboardProps) {
         }}
       />
 
+      <PushPrompt />
+
       {toast && (
         <div className="fixed bottom-7 left-1/2 z-[200] -translate-x-1/2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-white shadow-lg">
           {toast}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Push notification prompt ─────────────────────────────────────────────── */
+function PushPrompt() {
+  const { state, subscribe } = usePushNotifications();
+  const [dismissed, setDismissed] = useState(false);
+
+  if (state === "unsupported" || state === "granted" || state === "denied" || dismissed) return null;
+
+  return (
+    <div className="fixed bottom-6 left-1/2 z-[150] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-3xl border border-[var(--line-2)] bg-white p-5 shadow-xl">
+      <div className="flex items-start gap-3">
+        <span className="text-2xl">🔥</span>
+        <div className="flex-1">
+          <div className="text-[14px] font-semibold">Never lose your streak</div>
+          <div className="mt-0.5 text-[13px] text-muted">Get a nudge when your streak is at risk.</div>
+          <div className="mt-3 flex gap-2">
+            <button onClick={subscribe}
+              className="rounded-full bg-indigo px-4 py-2 text-[13px] font-medium text-white hover:bg-[var(--indigo-ink)]">
+              Turn on
+            </button>
+            <button onClick={() => setDismissed(true)}
+              className="rounded-full border border-[var(--line)] px-4 py-2 text-[13px] font-medium text-ink-2 hover:border-ink">
+              Not now
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -362,6 +397,12 @@ function Dashboard(
             <NextCard tag="Tutor" topic="Ask your teacher anything" time="anytime" why="Chat with your personal tutor — they can teach, quiz, and guide you." onClick={onAskTeacher} />
           </div>
         </Section>
+
+        {/* Exam countdown + lesson notes */}
+        <div className="grid gap-5 lg:grid-cols-2">
+          <ExamCountdown subjects={subjects} />
+          <LessonNotes />
+        </div>
 
         {/* activity + progress */}
         <Section title="">
