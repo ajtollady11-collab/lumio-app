@@ -58,3 +58,28 @@ export async function getCompletionStats(): Promise<{
     return { lessonsThisMonth: 0, quizzesThisMonth: 0, avgScore: 0 };
   }
 }
+
+/**
+ * Gets the last N completions for the dashboard activity feed.
+ */
+export async function getRecentActivity(limit = 5): Promise<Array<{
+  type: string;
+  subject: string | null;
+  score: number | null;
+  completed_at: string;
+}>> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+    const { data } = await supabase
+      .from("completions")
+      .select("type, subject, score, completed_at")
+      .eq("user_id", user.id)
+      .order("completed_at", { ascending: false })
+      .limit(limit);
+    return data ?? [];
+  } catch {
+    return [];
+  }
+}

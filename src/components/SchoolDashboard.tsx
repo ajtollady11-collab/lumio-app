@@ -82,6 +82,7 @@ export function SchoolDashboard(props: DashboardProps) {
   const [lessonsDone, setLessonsDone] = useState(0);
   const [testsDone, setTestsDone] = useState(0);
   const [avgScore, setAvgScore] = useState(0);
+  const [activity, setActivity] = useState<Array<{ type: string; subject: string | null; score: number | null; completed_at: string }>>([]);
 
   // Fetch real completion stats (poll every 60s)
   useEffect(() => {
@@ -117,6 +118,14 @@ export function SchoolDashboard(props: DashboardProps) {
     const t = setInterval(fetchStreak, 60_000);
     return () => clearInterval(t);
   }, []);
+
+  // Fetch recent activity (on mount + after stats update)
+  useEffect(() => {
+    fetch("/api/activity")
+      .then((r) => r.ok ? r.json() : [])
+      .then((d) => setActivity(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, [lessonsDone, testsDone]); // refresh when stats change
   // Derive overall mastery from real completions — rough but real
   // Each lesson/quiz contributes toward mastery (cap at 95% to feel aspirational)
   const overall = Math.min(95, Math.round((lessonsDone * 8) + (testsDone * 5)));
@@ -142,6 +151,7 @@ export function SchoolDashboard(props: DashboardProps) {
         testsDone={testsDone}
         avgScore={avgScore}
         overall={overall}
+        activity={activity}
         onAskTeacher={() => router.push("/tutor")}
         onLearn={(mode) => {
           if (mode === "lecture") {
@@ -179,6 +189,7 @@ function Dashboard(
     testsDone: number;
     avgScore: number;
     overall: number;
+    activity: Array<{ type: string; subject: string | null; score: number | null; completed_at: string }>;
     onAskTeacher: () => void;
     onLearn: (mode?: string) => void;
     onLearnSubject: (subject: string, mode: string) => void;
@@ -186,7 +197,7 @@ function Dashboard(
 ) {
   const {
     firstName, teacherName, personalityLabel, curriculum, subjects,
-    goalDone, goalTotal, streak, lessonsDone, testsDone, avgScore, overall,
+    goalDone, goalTotal, streak, lessonsDone, testsDone, avgScore, overall, activity,
     onAskTeacher, onLearn, onLearnSubject,
   } = props;
   const goalPct = Math.min(100, Math.round((goalDone / goalTotal) * 100));
@@ -357,9 +368,34 @@ function Dashboard(
             <div className="rounded-3xl border border-[var(--line-2)] bg-white p-7" style={{ boxShadow: "var(--shadow-sm)" }}>
               <h3 className="font-display text-xl font-semibold">Recent activity</h3>
               <div className="mt-3 flex flex-col">
-                <div className="py-6 text-center text-sm text-muted">
-                  Your activity will appear here as you learn. Start a lesson or quiz to get going!
-                </div>
+                {activity.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted">
+                    Your activity will appear here as you learn. Start a lesson or quiz to get going!
+                  </div>
+                ) : (
+                  activity.map((item, i) => {
+                    const date = new Date(item.completed_at);
+                    const now = new Date();
+                    const isToday = date.toDateString() === now.toDateString();
+                    const isYesterday = date.toDateString() === new Date(now.getTime() - 86400000).toDateString();
+                    const timeLabel = isToday ? "Today" : isYesterday ? "Yesterday" : date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+                    const icon = item.type === "quiz" ? "✅" : item.type === "flashcards" ? "📋" : item.type === "lecture" ? "🎓" : "📖";
+                    const label = item.type === "quiz"
+                      ? `Scored ${item.score ?? "?"}% on ${item.subject ?? "a"} quiz`
+                      : item.type === "lecture"
+                      ? `Watched a ${item.subject ?? ""} lecture`
+                      : item.type === "flashcards"
+                      ? `Revised ${item.subject ?? ""} flashcards`
+                      : `Completed a ${item.subject ?? ""} lesson`;
+                    return (
+                      <div key={i} className="flex items-center gap-3 border-b border-[var(--line-2)] py-3 last:border-0">
+                        <span className="text-lg">{icon}</span>
+                        <div className="flex-1 text-[13.5px] text-ink-2">{label}</div>
+                        <span className="text-[12px] text-muted">{timeLabel}</span>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
 

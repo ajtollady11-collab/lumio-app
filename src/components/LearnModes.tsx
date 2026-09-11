@@ -278,7 +278,7 @@ export function LearnModes({
               {data.type === "lesson" && <LessonView d={data} />}
               {data.type === "lecture" && <LectureView d={data} />}
               {data.type === "flashcards" && <FlashcardsView d={data} />}
-              {data.type === "quiz" && <QuizView d={data} />}
+              {data.type === "quiz" && <QuizView d={data} subject={subject === "__other__" ? otherSubject : subject} />}
               <div className="mt-8 flex justify-center gap-3">
                 <button onClick={reset} className="inline-flex h-11 items-center rounded-full border border-[var(--line)] bg-white px-5 text-sm font-medium hover:border-ink">
                   Make another
@@ -440,12 +440,23 @@ function FlashcardsView({ d }: { d: FlashData }) {
 }
 
 /* ================= QUIZ ================= */
-function QuizView({ d }: { d: QuizData }) {
+function QuizView({ d, subject }: { d: QuizData; subject: string }) {
   const [i, setI] = useState(0);
   const [answered, setAnswered] = useState<number | null>(null);
   const [score, setScore] = useState(0);
   const [done, setDone] = useState(false);
   const q = d.questions[i];
+
+  // Record score when quiz finishes
+  useEffect(() => {
+    if (!done) return;
+    const pct = Math.round((score / d.questions.length) * 100);
+    fetch("/api/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "quiz", subject, score: pct }),
+    }).catch(() => {});
+  }, [done, score, d.questions.length, subject]);
 
   if (done) {
     const pct = Math.round((score / d.questions.length) * 100);
