@@ -343,6 +343,7 @@ function Dashboard(
                     <span onClick={(e) => { e.stopPropagation(); onLearnSubject(s, "lesson"); }} className="rounded-full border border-[var(--line)] bg-paper-2 px-3 py-1 text-[12px] text-ink-2 hover:border-ink">Lesson</span>
                     <span onClick={(e) => { e.stopPropagation(); onLearnSubject(s, "quiz"); }} className="rounded-full border border-[var(--line)] bg-paper-2 px-3 py-1 text-[12px] text-ink-2 hover:border-ink">Quiz</span>
                     <span onClick={(e) => { e.stopPropagation(); onLearnSubject(s, "flashcards"); }} className="rounded-full border border-[var(--line)] bg-paper-2 px-3 py-1 text-[12px] text-ink-2 hover:border-ink">Flashcards</span>
+                    <span onClick={(e) => { e.stopPropagation(); onLearnSubject(s, "lecture"); }} className="rounded-full border border-[var(--line)] bg-paper-2 px-3 py-1 text-[12px] text-ink-2 hover:border-ink">Lecture</span>
                   </div>
                   <span className="mt-3 inline-flex items-center gap-1 text-[13.5px] font-semibold text-indigo">
                     Start learning →

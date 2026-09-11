@@ -50,7 +50,13 @@ export function LecturePlayer({
         const res = await fetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: "lecture", subject, topic: topicInput }),
+          // When topic was typed in the picker (no URL topic), use it as the subject too
+          // so Claude doesn't get confused by a mismatched subject (e.g. "Maths" + "Macbeth")
+          body: JSON.stringify({
+            mode: "lecture",
+            subject: topic ? subject : topicInput,
+            topic: topicInput,
+          }),
         });
         if (!res.ok) throw new Error("Generation failed");
         const json = await res.json();
@@ -150,7 +156,7 @@ export function LecturePlayer({
           ← Exit lecture
         </button>
         <div className="text-sm font-medium text-white/80">
-          {lecture?.title ?? `${subject}${topic ? ` — ${topic}` : ""}`}
+          {lecture?.title ?? (topicInput ? topicInput : subject)}
         </div>
         <div className="text-sm text-white/40">
           {lecture ? `${slideIndex + 1} / ${lecture.slides.length}` : ""}
@@ -195,7 +201,7 @@ export function LecturePlayer({
                       : "text-white/40 hover:bg-white/10 hover:text-white/70"
                   }`}
                 >
-                  {i + 1}. {s.heading.slice(0, 28)}{s.heading.length > 28 ? "…" : ""}
+                  {i + 1}. {s.heading.slice(0, 36)}{s.heading.length > 36 ? "…" : ""}
                 </button>
               ))}
             </div>
@@ -256,7 +262,7 @@ export function LecturePlayer({
               </div>
               {/* Quick topic suggestions */}
               <div className="flex flex-wrap justify-center gap-2">
-                {[`Introduction to ${subject}`, `Key concepts in ${subject}`, `Common mistakes in ${subject}`].map((s) => (
+                {["Macbeth", "The Water Cycle", "Quadratic Equations", "The French Revolution", "DNA and Genetics"].map((s) => (
                   <button key={s} onClick={() => { setTopicInput(s); setPhase("loading"); }}
                     className="rounded-full border border-white/15 px-3.5 py-1.5 text-[13px] text-white/50 hover:border-white/30 hover:text-white/80">
                     {s}
