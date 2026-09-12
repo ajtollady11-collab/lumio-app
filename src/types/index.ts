@@ -25,7 +25,8 @@ export interface TeacherProfile {
 
 export const SUBJECT_OPTIONS = [
   "Mathematics",
-  "English",
+  "English Language",
+  "English Literature",
   "Science",
   "Biology",
   "Chemistry",
@@ -33,9 +34,21 @@ export const SUBJECT_OPTIONS = [
   "History",
   "Geography",
   "Computer Science",
-  "Languages",
-  "Art",
+  "Business Studies",
+  "Economics",
+  "Psychology",
+  "Sociology",
+  "Religious Studies",
+  "Drama",
+  "Art & Design",
   "Music",
+  "Physical Education",
+  "Design & Technology",
+  "French",
+  "Spanish",
+  "German",
+  "Other Language",
+  "Media Studies",
 ] as const;
 
 export const CURRICULUM_OPTIONS = [
