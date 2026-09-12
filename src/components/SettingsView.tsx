@@ -193,7 +193,59 @@ function ProfileTab(props: SettingsData) {
           <span className={`text-sm ${msg.ok ? "text-[var(--sage)]" : "text-[var(--coral)]"}`}>{msg.text}</span>
         )}
       </div>
+
+      <ParentInviteSection />
     </div>
+  );
+}
+
+/* ── Parent Invite ─────────────────────────────────────────────────────────── */
+function ParentInviteSection() {
+  const [code, setCode] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function getCode() {
+    setLoading(true);
+    const res = await fetch("/api/parent-invite");
+    const d = await res.json();
+    setCode(d.code);
+    setLoading(false);
+  }
+
+  function copy() {
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <Card title="Parent access">
+      <p className="text-[14px] text-muted mb-4">
+        Share an invite code with a parent or guardian so they can view your progress from their own account.
+      </p>
+      {!code ? (
+        <button onClick={getCode} disabled={loading}
+          className="inline-flex h-10 items-center rounded-full border border-[var(--line)] bg-white px-5 text-sm font-medium text-ink-2 hover:border-ink disabled:opacity-50">
+          {loading ? "Generating…" : "Generate invite code"}
+        </button>
+      ) : (
+        <div className="flex items-center gap-3">
+          <div className="rounded-2xl border border-[var(--indigo)]/30 bg-[var(--indigo)]/8 px-6 py-3 font-mono text-2xl font-bold tracking-[0.3em] text-indigo">
+            {code}
+          </div>
+          <button onClick={copy} className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium text-ink-2 hover:border-ink">
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+      )}
+      {code && (
+        <p className="mt-3 text-[13px] text-muted">
+          Valid for 7 days. Parent signs up at lumio-app-five.vercel.app/parent and enters this code.
+        </p>
+      )}
+    </Card>
   );
 }
 
