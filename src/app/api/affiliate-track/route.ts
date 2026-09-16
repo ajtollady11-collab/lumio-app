@@ -48,7 +48,7 @@ export async function PATCH(request: NextRequest) {
   // Find their referral
   const { data: referral } = await admin
     .from("affiliate_referrals")
-    .select("id, affiliate_id, affiliates(commission_pct)")
+    .select("id, affiliate_id")
     .eq("user_id", user_id)
     .eq("converted_to_paid", false)
     .maybeSingle();
@@ -56,7 +56,7 @@ export async function PATCH(request: NextRequest) {
   if (!referral) return NextResponse.json({ ok: false });
 
   // £29.99 * commission_pct / 100
-  const pct = (referral.affiliates as { commission_pct: number })?.commission_pct ?? 20;
+  const pct = 20;
   const earnings = Math.round(29.99 * pct) / 100;
 
   await admin.from("affiliate_referrals").update({
