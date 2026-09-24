@@ -13,7 +13,7 @@ import {
 } from "@/types";
 import { completeOnboarding } from "@/app/onboarding/actions";
 
-const STEPS = ["About you", "Your subjects", "Your teacher"] as const;
+const STEPS = ["About you", "Your subjects", "Your teacher", "Quick quiz"] as const;
 
 interface FormState {
   firstName: string;
@@ -25,6 +25,14 @@ interface FormState {
   teacherName: string;
   voicePreference: VoicePreference;
   personality: string;
+}
+
+interface QuizAnswers {
+  goal: string;
+  learningStyle: string;
+  biggestChallenge: string;
+  timePerDay: string;
+  achievement: string;
 }
 
 const initialState: FormState = {
@@ -39,6 +47,14 @@ const initialState: FormState = {
   personality: "encouraging",
 };
 
+const initialQuiz: QuizAnswers = {
+  goal: "",
+  learningStyle: "",
+  biggestChallenge: "",
+  timePerDay: "",
+  achievement: "",
+};
+
 export function OnboardingFlow({
   defaultFirstName = "",
 }: {
@@ -50,50 +66,47 @@ export function OnboardingFlow({
     ...initialState,
     firstName: defaultFirstName,
   });
+  const [quiz, setQuiz] = useState<QuizAnswers>(initialQuiz);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  function update<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((f) => ({ ...f, [key]: value }));
+  function set<K extends keyof FormState>(k: K, v: FormState[K]) {
+    setForm((f) => ({ ...f, [k]: v }));
   }
 
   function toggleSubject(subject: string) {
-    setForm((f) => ({
-      ...f,
-      subjects: f.subjects.includes(subject)
-        ? f.subjects.filter((s) => s !== subject)
-        : [...f.subjects, subject],
-    }));
+    set(
+      "subjects",
+      form.subjects.includes(subject)
+        ? form.subjects.filter((s) => s !== subject)
+        : [...form.subjects, subject],
+    );
   }
 
-  function next() {
+  function nextStep() {
     setError(null);
-    if (step === 0 && !form.firstName.trim()) {
-      setError("Please enter a first name to continue.");
-      return;
+    if (step === 0) {
+      if (!form.firstName.trim()) return setError("Please enter a first name.");
     }
-    if (step === 1 && form.subjects.length === 0) {
-      setError("Choose at least one subject.");
-      return;
+    if (step === 1) {
+      if (form.subjects.length === 0) return setError("Pick at least one subject.");
     }
-    setStep((s) => Math.min(s + 1, STEPS.length - 1));
-  }
-
-  function back() {
-    setError(null);
-    setStep((s) => Math.max(s - 1, 0));
+    if (step === 2) {
+      if (!form.teacherName.trim()) return setError("Please give your teacher a name.");
+    }
+    setStep((s) => s + 1);
   }
 
   async function submit() {
     setError(null);
-    if (!form.teacherName.trim()) {
-      setError("Give your teacher a name to finish.");
-      return;
-    }
-    setSaving(true);
+    if (!quiz.goal) return setError("Please answer all questions.");
+    if (!quiz.learningStyle) return setError("Please answer all questions.");
+    if (!quiz.timePerDay) return setError("Please answer all questions.");
+
+    setSubmitting(true);
     const result = await completeOnboarding({
       firstName: form.firstName,
-      age: form.age ? Number(form.age) : null,
+      age: form.age ? parseInt(form.age) : null,
       schoolYear: form.schoolYear,
       country: form.country,
       curriculum: form.curriculum,
@@ -101,229 +114,219 @@ export function OnboardingFlow({
       teacherName: form.teacherName,
       voicePreference: form.voicePreference,
       personality: form.personality,
+      quizAnswers: quiz,
     });
-    setSaving(false);
-
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
+    setSubmitting(false);
+    if (!result.ok) return setError(result.error);
     router.push("/school");
-    router.refresh();
   }
 
+  const GOAL_OPTIONS = [
+    { value: "grades", label: "🎯 Get better grades" },
+    { value: "catchup", label: "📚 Catch up on missed topics" },
+    { value: "ahead", label: "🚀 Get ahead of my class" },
+    { value: "exams", label: "📝 Prepare for exams" },
+    { value: "curious", label: "💡 I just love learning" },
+  ];
+
+  const STYLE_OPTIONS = [
+    { value: "simple", label: "🧩 Keep it simple and clear" },
+    { value: "detail", label: "🔬 Give me the full detail" },
+    { value: "examples", label: "✏️ Teach me with examples" },
+    { value: "visual", label: "🎨 Explain it visually" },
+  ];
+
+  const TIME_OPTIONS = [
+    { value: "15", label: "⚡ 15 minutes" },
+    { value: "30", label: "📖 30 minutes" },
+    { value: "60", label: "🎓 1 hour" },
+    { value: "unlimited", label: "🔥 As much as I need" },
+  ];
+
   return (
-    <div className="w-full max-w-xl">
-      {/* Progress — genuinely sequential, so numbered steps are appropriate */}
-      <ol className="mb-8 flex items-center gap-3">
-        {STEPS.map((label, i) => (
-          <li key={label} className="flex flex-1 items-center gap-3">
-            <span
-              className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-semibold ${
-                i <= step
-                  ? "bg-indigo text-white"
-                  : "bg-white text-muted border border-[var(--line)]"
-              }`}
-            >
-              {i + 1}
-            </span>
-            <span
-              className={`hidden text-sm sm:block ${
-                i === step ? "font-medium text-ink" : "text-muted"
-              }`}
-            >
-              {label}
-            </span>
-            {i < STEPS.length - 1 && (
-              <span className="h-px flex-1 bg-[var(--line)]" aria-hidden />
-            )}
-          </li>
+    <div className="mx-auto w-full max-w-lg">
+      {/* Step indicator */}
+      <div className="mb-8 flex items-center gap-2">
+        {STEPS.map((s, i) => (
+          <div key={s} className="flex flex-1 flex-col items-center gap-1.5">
+            <div className={`h-1.5 w-full rounded-full transition-colors ${i <= step ? "bg-indigo" : "bg-[var(--line-2)]"}`} />
+            <span className={`text-[11px] font-medium ${i === step ? "text-indigo" : "text-muted"}`}>{s}</span>
+          </div>
         ))}
-      </ol>
-
-      <div className="rounded-3xl border border-[var(--line)] bg-white p-6 shadow-[0_24px_60px_-40px_rgba(23,26,43,0.35)] sm:p-8">
-        <FormError>{error}</FormError>
-
-        {step === 0 && (
-          <div className="space-y-4">
-            <h2 className="font-display text-2xl font-semibold text-ink">
-              Tell us about the student
-            </h2>
-            <Field label="First name" htmlFor="firstName">
-              <Input
-                id="firstName"
-                value={form.firstName}
-                onChange={(e) => update("firstName", e.target.value)}
-                placeholder="e.g. Maya"
-                autoComplete="given-name"
-              />
-            </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Age" htmlFor="age">
-                <Input
-                  id="age"
-                  type="number"
-                  min={4}
-                  max={19}
-                  value={form.age}
-                  onChange={(e) => update("age", e.target.value)}
-                  placeholder="e.g. 14"
-                />
-              </Field>
-              <Field label="School year / grade" htmlFor="schoolYear">
-                <Input
-                  id="schoolYear"
-                  value={form.schoolYear}
-                  onChange={(e) => update("schoolYear", e.target.value)}
-                  placeholder="e.g. Year 10"
-                />
-              </Field>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Country" htmlFor="country">
-                <Input
-                  id="country"
-                  value={form.country}
-                  onChange={(e) => update("country", e.target.value)}
-                  placeholder="e.g. United Kingdom"
-                  autoComplete="country-name"
-                />
-              </Field>
-              <Field label="Curriculum" htmlFor="curriculum">
-                <Select
-                  id="curriculum"
-                  value={form.curriculum}
-                  onChange={(e) => update("curriculum", e.target.value)}
-                >
-                  <option value="">Select…</option>
-                  {CURRICULUM_OPTIONS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-          </div>
-        )}
-
-        {step === 1 && (
-          <div className="space-y-4">
-            <h2 className="font-display text-2xl font-semibold text-ink">
-              What would you like to learn?
-            </h2>
-            <p className="text-sm text-muted">
-              Pick the subjects to start with. You can change these later.
-            </p>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-              {SUBJECT_OPTIONS.map((subject) => {
-                const selected = form.subjects.includes(subject);
-                return (
-                  <button
-                    key={subject}
-                    type="button"
-                    onClick={() => toggleSubject(subject)}
-                    aria-pressed={selected}
-                    className={`focus-ring rounded-xl border px-3 py-2.5 text-sm transition-colors ${
-                      selected
-                        ? "border-indigo bg-[var(--indigo)]/8 font-medium text-indigo"
-                        : "border-[var(--line)] bg-white text-ink-2 hover:border-ink"
-                    }`}
-                  >
-                    {subject}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-5">
-            <div>
-              <h2 className="font-display text-2xl font-semibold text-ink">
-                Create your personal teacher
-              </h2>
-              <p className="mt-1 text-sm text-muted">
-                We&rsquo;ll save these preferences now. Your teacher comes to
-                life in a later release.
-              </p>
-            </div>
-            <Field label="Teacher name" htmlFor="teacherName">
-              <Input
-                id="teacherName"
-                value={form.teacherName}
-                onChange={(e) => update("teacherName", e.target.value)}
-                placeholder="e.g. Professor Ada"
-              />
-            </Field>
-            <Field label="Voice preference">
-              <div className="flex gap-2.5">
-                {VOICE_OPTIONS.map((v) => (
-                  <button
-                    key={v.value}
-                    type="button"
-                    onClick={() => update("voicePreference", v.value)}
-                    aria-pressed={form.voicePreference === v.value}
-                    className={`focus-ring flex-1 rounded-xl border px-3 py-2.5 text-sm transition-colors ${
-                      form.voicePreference === v.value
-                        ? "border-indigo bg-[var(--indigo)]/8 font-medium text-indigo"
-                        : "border-[var(--line)] bg-white text-ink-2 hover:border-ink"
-                    }`}
-                  >
-                    {v.label}
-                  </button>
-                ))}
-              </div>
-            </Field>
-            <Field label="Teaching personality">
-              <div className="grid gap-2.5 sm:grid-cols-2">
-                {PERSONALITY_OPTIONS.map((p) => (
-                  <button
-                    key={p.value}
-                    type="button"
-                    onClick={() => update("personality", p.value)}
-                    aria-pressed={form.personality === p.value}
-                    className={`focus-ring rounded-xl border p-3 text-left transition-colors ${
-                      form.personality === p.value
-                        ? "border-indigo bg-[var(--indigo)]/8"
-                        : "border-[var(--line)] bg-white hover:border-ink"
-                    }`}
-                  >
-                    <span className="block text-sm font-medium text-ink">
-                      {p.label}
-                    </span>
-                    <span className="mt-0.5 block text-xs text-muted">
-                      {p.hint}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </Field>
-          </div>
-        )}
-
-        <div className="mt-8 flex items-center justify-between">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={back}
-            disabled={step === 0 || saving}
-            className={step === 0 ? "invisible" : ""}
-          >
-            Back
-          </Button>
-          {step < STEPS.length - 1 ? (
-            <Button type="button" onClick={next}>
-              Continue
-            </Button>
-          ) : (
-            <Button type="button" onClick={submit} disabled={saving}>
-              {saving ? "Setting up…" : "Enter my school"}
-            </Button>
-          )}
-        </div>
       </div>
+
+      {/* Step 0 — About you */}
+      {step === 0 && (
+        <div className="space-y-4">
+          <div>
+            <h1 className="font-display text-2xl font-semibold">Let's get started</h1>
+            <p className="mt-1 text-sm text-muted">Tell us a bit about the student.</p>
+          </div>
+          <Field label="First name">
+            <Input value={form.firstName} onChange={(e) => set("firstName", e.target.value)} placeholder="e.g. Alfie" autoFocus />
+          </Field>
+          <Field label="Age">
+            <Input type="number" value={form.age} onChange={(e) => set("age", e.target.value)} placeholder="e.g. 15" min={5} max={25} />
+          </Field>
+          <Field label="School year">
+            <Select value={form.schoolYear} onChange={(e) => set("schoolYear", e.target.value)}>
+              <option value="">Select year…</option>
+              {["Year 7","Year 8","Year 9","Year 10","Year 11","Year 12","Year 13","University","Other"].map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Country">
+            <Input value={form.country} onChange={(e) => set("country", e.target.value)} placeholder="e.g. United Kingdom" />
+          </Field>
+          <Field label="Curriculum">
+            <Select value={form.curriculum} onChange={(e) => set("curriculum", e.target.value)}>
+              <option value="">Select curriculum…</option>
+              {CURRICULUM_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+            </Select>
+          </Field>
+          {error && <FormError>{error}</FormError>}
+          <Button onClick={nextStep} className="w-full">Continue →</Button>
+        </div>
+      )}
+
+      {/* Step 1 — Subjects */}
+      {step === 1 && (
+        <div className="space-y-4">
+          <div>
+            <h1 className="font-display text-2xl font-semibold">Your subjects</h1>
+            <p className="mt-1 text-sm text-muted">Pick everything you study.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {SUBJECT_OPTIONS.map((subject) => {
+              const selected = form.subjects.includes(subject);
+              return (
+                <button
+                  key={subject}
+                  onClick={() => toggleSubject(subject)}
+                  className={`rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors ${selected ? "border-indigo bg-indigo/8 text-indigo" : "border-[var(--line-2)] text-ink-2 hover:border-[var(--line)]"}`}
+                >
+                  {subject}
+                </button>
+              );
+            })}
+          </div>
+          {error && <FormError>{error}</FormError>}
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setStep(0)}>← Back</Button>
+            <Button onClick={nextStep} className="flex-1">Continue →</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2 — Teacher */}
+      {step === 2 && (
+        <div className="space-y-4">
+          <div>
+            <h1 className="font-display text-2xl font-semibold">Your AI teacher</h1>
+            <p className="mt-1 text-sm text-muted">Personalise your tutor.</p>
+          </div>
+          <Field label="Teacher name">
+            <Input value={form.teacherName} onChange={(e) => set("teacherName", e.target.value)} placeholder="e.g. Mr Smith, Ms Johnson…" autoFocus />
+          </Field>
+          <Field label="Teaching style">
+            <Select value={form.personality} onChange={(e) => set("personality", e.target.value)}>
+              {PERSONALITY_OPTIONS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+            </Select>
+          </Field>
+          <Field label="Voice">
+            <Select value={form.voicePreference} onChange={(e) => set("voicePreference", e.target.value as VoicePreference)}>
+              {VOICE_OPTIONS.map((v) => <option key={v.value} value={v.value}>{v.label}</option>)}
+            </Select>
+          </Field>
+          {error && <FormError>{error}</FormError>}
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setStep(1)}>← Back</Button>
+            <Button onClick={nextStep} className="flex-1">Continue →</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3 — Quiz */}
+      {step === 3 && (
+        <div className="space-y-6">
+          <div>
+            <h1 className="font-display text-2xl font-semibold">Just 5 quick questions</h1>
+            <p className="mt-1 text-sm text-muted">So {form.teacherName || "your teacher"} can tailor every lesson to you.</p>
+          </div>
+
+          {/* Q1 */}
+          <div>
+            <p className="mb-2.5 text-[14px] font-semibold text-ink">1. What's your main goal with Lumio?</p>
+            <div className="grid grid-cols-1 gap-2">
+              {GOAL_OPTIONS.map((o) => (
+                <button key={o.value} onClick={() => setQuiz((q) => ({ ...q, goal: o.value }))}
+                  className={`rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors ${quiz.goal === o.value ? "border-indigo bg-indigo/8 text-indigo" : "border-[var(--line-2)] text-ink-2 hover:border-[var(--line)]"}`}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Q2 */}
+          <div>
+            <p className="mb-2.5 text-[14px] font-semibold text-ink">2. How do you learn best?</p>
+            <div className="grid grid-cols-2 gap-2">
+              {STYLE_OPTIONS.map((o) => (
+                <button key={o.value} onClick={() => setQuiz((q) => ({ ...q, learningStyle: o.value }))}
+                  className={`rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors ${quiz.learningStyle === o.value ? "border-indigo bg-indigo/8 text-indigo" : "border-[var(--line-2)] text-ink-2 hover:border-[var(--line)]"}`}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Q3 */}
+          <div>
+            <p className="mb-2.5 text-[14px] font-semibold text-ink">3. What's your biggest challenge right now?</p>
+            <textarea
+              value={quiz.biggestChallenge}
+              onChange={(e) => setQuiz((q) => ({ ...q, biggestChallenge: e.target.value }))}
+              placeholder="e.g. I struggle with essay structure, maths confuses me, I can't focus…"
+              className="w-full rounded-xl border border-[var(--line)] px-4 py-3 text-sm text-ink outline-none focus:border-indigo resize-none"
+              rows={3}
+            />
+          </div>
+
+          {/* Q4 */}
+          <div>
+            <p className="mb-2.5 text-[14px] font-semibold text-ink">4. How much time can you commit per day?</p>
+            <div className="grid grid-cols-2 gap-2">
+              {TIME_OPTIONS.map((o) => (
+                <button key={o.value} onClick={() => setQuiz((q) => ({ ...q, timePerDay: o.value }))}
+                  className={`rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors ${quiz.timePerDay === o.value ? "border-indigo bg-indigo/8 text-indigo" : "border-[var(--line-2)] text-ink-2 hover:border-[var(--line)]"}`}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Q5 */}
+          <div>
+            <p className="mb-2.5 text-[14px] font-semibold text-ink">5. What do you want to achieve?</p>
+            <textarea
+              value={quiz.achievement}
+              onChange={(e) => setQuiz((q) => ({ ...q, achievement: e.target.value }))}
+              placeholder="e.g. Pass my Maths GCSE, get an A in English, understand Chemistry…"
+              className="w-full rounded-xl border border-[var(--line)] px-4 py-3 text-sm text-ink outline-none focus:border-indigo resize-none"
+              rows={3}
+            />
+          </div>
+
+          {error && <FormError>{error}</FormError>}
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setStep(2)}>← Back</Button>
+            <Button onClick={submit} disabled={submitting} className="flex-1">
+              {submitting ? "Setting up your school…" : "Start learning →"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
